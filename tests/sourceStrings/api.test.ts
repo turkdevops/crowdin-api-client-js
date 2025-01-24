@@ -1,5 +1,5 @@
 import * as nock from 'nock';
-import { Credentials, PatchOperation, SourceStrings } from '../../src';
+import { Credentials, SourceStrings } from '../../src';
 
 describe('Source Strings API', () => {
     let scope: nock.Scope;
@@ -12,11 +12,42 @@ describe('Source Strings API', () => {
     const stringIdentifier = '222';
     const stringId = 123;
     const stringText = 'text. Sample text';
+    const uploadId = '123-123';
+    const branchId = 1212;
+    const storageId = 2332;
+    const fileId = 111;
 
     const limit = 25;
 
     beforeAll(() => {
         scope = nock(api.url)
+            .get(`/projects/${projectId}/strings/uploads/${uploadId}`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: {
+                    identifier: uploadId,
+                },
+            })
+            .post(
+                `/projects/${projectId}/strings/uploads`,
+                {
+                    storageId,
+                    branchId,
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: {
+                    identifier: uploadId,
+                },
+            })
             .get(`/projects/${projectId}/strings`, undefined, {
                 reqheaders: {
                     Authorization: `Bearer ${api.token}`,
@@ -41,6 +72,7 @@ describe('Source Strings API', () => {
                 {
                     identifier: stringIdentifier,
                     text: stringText,
+                    fileId,
                 },
                 {
                     reqheaders: {
@@ -52,6 +84,35 @@ describe('Source Strings API', () => {
                 data: {
                     id: stringId,
                     text: stringText,
+                },
+            })
+            .patch(
+                `/projects/${projectId}/strings`,
+                [
+                    {
+                        value: stringText,
+                        op: 'replace',
+                        path: `/${stringId}/text`,
+                    },
+                ],
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: [
+                    {
+                        data: {
+                            id: stringId,
+                            text: stringText,
+                        },
+                    },
+                ],
+                pagination: {
+                    offset: 0,
+                    limit: limit,
                 },
             })
             .get(`/projects/${projectId}/strings/${stringId}`, undefined, {
@@ -76,7 +137,7 @@ describe('Source Strings API', () => {
                 [
                     {
                         value: stringText,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/text',
                     },
                 ],
@@ -98,6 +159,19 @@ describe('Source Strings API', () => {
         scope.done();
     });
 
+    it('Upload strings status', async () => {
+        const status = await api.uploadStringsStatus(projectId, uploadId);
+        expect(status.data.identifier).toBe(uploadId);
+    });
+
+    it('Upload strings', async () => {
+        const status = await api.uploadStrings(projectId, {
+            branchId,
+            storageId,
+        });
+        expect(status.data.identifier).toBe(uploadId);
+    });
+
     it('List project strings', async () => {
         const strings = await api.listProjectStrings(projectId);
         expect(strings.data.length).toBe(1);
@@ -110,7 +184,22 @@ describe('Source Strings API', () => {
         const string = await api.addString(projectId, {
             identifier: stringIdentifier,
             text: stringText,
+            fileId,
         });
+        expect(string.data.id).toBe(stringId);
+        expect(string.data.text).toBe(stringText);
+    });
+
+    it('String batch operations', async () => {
+        const strings = await api.stringBatchOperations(projectId, [
+            {
+                op: 'replace',
+                path: `/${stringId}/text`,
+                value: stringText,
+            },
+        ]);
+        expect(strings.data.length).toBe(1);
+        const string = strings.data[0];
         expect(string.data.id).toBe(stringId);
         expect(string.data.text).toBe(stringText);
     });
@@ -128,7 +217,7 @@ describe('Source Strings API', () => {
     it('Edit string', async () => {
         const string = await api.editString(projectId, stringId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/text',
                 value: stringText,
             },

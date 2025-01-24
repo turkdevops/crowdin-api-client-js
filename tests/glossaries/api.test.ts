@@ -1,5 +1,5 @@
 import * as nock from 'nock';
-import { Credentials, Glossaries, GlossariesModel, PatchOperation } from '../../src/index';
+import { Credentials, Glossaries } from '../../src/index';
 
 describe('Glossaries API', () => {
     let scope: nock.Scope;
@@ -11,7 +11,7 @@ describe('Glossaries API', () => {
     const glossaryId = 112;
     const glossaryName = 'test';
     const glossaryTerms = 4;
-    const glossaryFormat = GlossariesModel.GlossaryFormat.CSV;
+    const glossaryFormat = 'csv';
     const glossaryLink = 'test.com';
     const exportId = '1111';
     const importId = '2222';
@@ -21,6 +21,10 @@ describe('Glossaries API', () => {
     const termLanguageId = 'fr';
     const limit = 25;
     const groupId = 111;
+    const projectId = 123;
+
+    const conceptId = 983;
+    const subject = 'test';
 
     beforeAll(() => {
         scope = nock(api.url)
@@ -51,6 +55,7 @@ describe('Glossaries API', () => {
                 {
                     name: glossaryName,
                     groupId: groupId,
+                    languageId: termLanguageId,
                 },
                 {
                     reqheaders: {
@@ -86,7 +91,7 @@ describe('Glossaries API', () => {
                 [
                     {
                         value: glossaryTerms,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/term',
                     },
                 ],
@@ -235,7 +240,7 @@ describe('Glossaries API', () => {
                 [
                     {
                         value: termText,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/text',
                     },
                 ],
@@ -251,6 +256,84 @@ describe('Glossaries API', () => {
                     glossaryId: glossaryId,
                     text: termText,
                 },
+            })
+            .get(`/glossaries/${glossaryId}/concepts`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: [
+                    {
+                        data: {
+                            id: conceptId,
+                        },
+                    },
+                ],
+                pagination: {
+                    offset: 0,
+                    limit: limit,
+                },
+            })
+            .get(`/glossaries/${glossaryId}/concepts/${conceptId}`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: {
+                    id: conceptId,
+                },
+            })
+            .put(
+                `/glossaries/${glossaryId}/concepts/${conceptId}`,
+                {
+                    subject,
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: {
+                    id: conceptId,
+                },
+            })
+            .delete(`/glossaries/${glossaryId}/concepts/${conceptId}`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200)
+            .post(
+                `/projects/${projectId}/glossaries/concordance`,
+                {
+                    sourceLanguageId: termLanguageId,
+                    targetLanguageId: termLanguageId,
+                    expressions: ['Welcome!'],
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: [
+                    {
+                        data: {
+                            glossary: {
+                                id: glossaryId,
+                            },
+                        },
+                    },
+                ],
+                pagination: {
+                    offset: 0,
+                    limit: limit,
+                },
             });
     });
 
@@ -259,7 +342,7 @@ describe('Glossaries API', () => {
     });
 
     it('List glossaries', async () => {
-        const glossaries = await api.listGlossaries(groupId);
+        const glossaries = await api.listGlossaries({ groupId });
         expect(glossaries.data.length).toBe(1);
         expect(glossaries.data[0].data.id).toBe(glossaryId);
         expect(glossaries.data[0].data.name).toBe(glossaryName);
@@ -270,6 +353,7 @@ describe('Glossaries API', () => {
         const glossary = await api.addGlossary({
             name: glossaryName,
             groupId: groupId,
+            languageId: termLanguageId,
         });
         expect(glossary.data.id).toBe(glossaryId);
         expect(glossary.data.name).toBe(glossaryName);
@@ -288,7 +372,7 @@ describe('Glossaries API', () => {
     it('Edit glossary', async () => {
         const glossary = await api.editGlossary(glossaryId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/term',
                 value: glossaryTerms,
             },
@@ -362,7 +446,7 @@ describe('Glossaries API', () => {
     it('Edit term', async () => {
         const term = await api.editTerm(glossaryId, termId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/text',
                 value: termText,
             },
@@ -370,5 +454,37 @@ describe('Glossaries API', () => {
         expect(term.data.id).toBe(termId);
         expect(term.data.glossaryId).toBe(glossaryId);
         expect(term.data.text).toBe(termText);
+    });
+
+    it('List concepts', async () => {
+        const concepts = await api.listConcepts(glossaryId);
+        expect(concepts.data.length).toBe(1);
+        expect(concepts.data[0].data.id).toBe(conceptId);
+    });
+
+    it('Get concept', async () => {
+        const concept = await api.getConcept(glossaryId, conceptId);
+        expect(concept.data.id).toBe(conceptId);
+    });
+
+    it('Update concept', async () => {
+        const concept = await api.updateConcept(glossaryId, conceptId, {
+            subject,
+        });
+        expect(concept.data.id).toBe(conceptId);
+    });
+
+    it('Delete concept', async () => {
+        await api.deleteConcept(glossaryId, conceptId);
+    });
+
+    it('Concordance search', async () => {
+        const res = await api.concordanceSearch(projectId, {
+            sourceLanguageId: termLanguageId,
+            targetLanguageId: termLanguageId,
+            expressions: ['Welcome!'],
+        });
+        expect(res.data.length).toBe(1);
+        expect(res.data[0].data.glossary.id).toBe(glossaryId);
     });
 });

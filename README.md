@@ -1,48 +1,53 @@
-[<p align='center'><img src='https://support.crowdin.com/assets/logos/crowdin-dark-symbol.png' data-canonical-src='https://support.crowdin.com/assets/logos/crowdin-dark-symbol.png' width='200' height='200' align='center'/></p>](https://crowdin.com)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://support.crowdin.com/assets/logos/symbol/png/crowdin-symbol-cWhite.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://support.crowdin.com/assets/logos/symbol/png/crowdin-symbol-cDark.png">
+    <img width="150" height="150" src="https://support.crowdin.com/assets/logos/symbol/png/crowdin-symbol-cDark.png">
+  </picture>
+</p>
 
-# Crowdin JavaScript client
+# Crowdin JavaScript client [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?url=https%3A%2F%2Fgithub.com%2Fcrowdin%2Fcrowdin-api-client-js&text=The%20Crowdin%20JavaScript%20client%20is%20a%20lightweight%20interface%20to%20the%20Crowdin%20API%20that%20works%20in%20any%20JavaScript%20environment)&nbsp;[![GitHub Repo stars](https://img.shields.io/github/stars/crowdin/crowdin-api-client-js?style=social&cacheSeconds=1800)](https://github.com/crowdin/crowdin-api-client-js/stargazers)
 
-The Crowdin JavaScript client is a lightweight interface to the Crowdin API v2 that works in any JavaScript environment, including web browsers, workers in web browsers, extensions in web browsers or desktop applications, Node.js etc. It provides common services for making API requests.
+The Crowdin JavaScript client is a lightweight interface to the Crowdin API that works in any JavaScript environment, including web browsers, workers in web browsers, extensions in web browsers or desktop applications, Node.js etc. It provides common services for making API requests.
 
 Our API is a full-featured RESTful API that helps you to integrate localization into your development process. The endpoints that we use allow you to easily make calls to retrieve information and to execute actions needed.
 
-For more about Crowdin API v2 see the documentation:
-- [Crowdin](https://support.crowdin.com/api/v2/)
-- [Crowdin Enterprise](https://support.crowdin.com/enterprise/api/)
+<div align="center">
 
-## Status
+[**`Live Demo`**](https://runkit.com/andrii-bodnar/crowdin-js-api-client-live-demo) &nbsp;|&nbsp;
+[**`Docs`**](https://crowdin.github.io/crowdin-api-client-js/modules.html) &nbsp;|&nbsp;
+[**`Examples`**](https://github.com/crowdin/crowdin-api-client-js/blob/master/EXAMPLES.md) &nbsp;|&nbsp;
+[**`Crowdin API`**](https://developer.crowdin.com/api/v2/) &nbsp;|&nbsp;
+[**`Crowdin Enterprise API`**](https://developer.crowdin.com/enterprise/api/v2/)
 
 [![npm](https://img.shields.io/npm/v/@crowdin/crowdin-api-client?logo=npm&cacheSeconds=1800)](https://www.npmjs.com/package/@crowdin/crowdin-api-client)
-[![npm](https://img.shields.io/npm/dt/@crowdin/crowdin-api-client?cacheSeconds=1800)](https://www.npmjs.com/package/@crowdin/crowdin-api-client)
-[![GitHub issues](https://img.shields.io/github/issues/crowdin/crowdin-api-client-js?cacheSeconds=3600)](https://github.com/crowdin/crowdin-api-client-js/issues)
-[![License](https://img.shields.io/github/license/crowdin/crowdin-api-client-js?cacheSeconds=3600)](https://github.com/crowdin/crowdin-api-client-js/blob/master/LICENSE)
-
+[![npm](https://img.shields.io/npm/dt/@crowdin/crowdin-api-client?logo=npm&cacheSeconds=1800)](https://www.npmjs.com/package/@crowdin/crowdin-api-client)
+[![GitHub Used by](https://img.shields.io/static/v1?label=Used%20by&message=4.1k&color=brightgreen&logo=github&cacheSeconds=10000)](https://github.com/crowdin/crowdin-api-client-js/network/dependents)
+[![Tests](https://github.com/crowdin/crowdin-api-client-js/actions/workflows/basic.yml/badge.svg)](https://github.com/crowdin/crowdin-api-client-js/actions/workflows/basic.yml)
 [![codecov](https://codecov.io/gh/crowdin/crowdin-api-client-js/branch/master/graph/badge.svg)](https://codecov.io/gh/crowdin/crowdin-api-client-js)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/crowdin/crowdin-api-client-js?cacheSeconds=3600)](https://github.com/crowdin/crowdin-api-client-js/pulse)
-[![GitHub Release Date](https://img.shields.io/github/release-date/crowdin/crowdin-api-client-js?cacheSeconds=3600)](https://github.com/crowdin/crowdin-api-client-js/releases)
 [![GitHub contributors](https://img.shields.io/github/contributors/crowdin/crowdin-api-client-js?cacheSeconds=3600)](https://github.com/crowdin/crowdin-api-client-js/graphs/contributors)
-
-## Build Status
-
-| Azure CI (Linux) | Azure CI (Windows) | Azure CI (MacOS) |
-|--------------------|------------------|------------------|
-|[![Build Status](https://dev.azure.com/crowdin/crowdin-api-client-js/_apis/build/status/crowdin-api-client-js%20(Ubuntu)?branchName=master)](https://dev.azure.com/crowdin/crowdin-api-client-js/_build/latest?definitionId=6&branchName=master)|[![Build Status](https://dev.azure.com/crowdin/crowdin-api-client-js/_apis/build/status/crowdin-api-client-js%20(Windows)?branchName=master)](https://dev.azure.com/crowdin/crowdin-api-client-js/_build/latest?definitionId=8&branchName=master)|[![Build Status](https://dev.azure.com/crowdin/crowdin-api-client-js/_apis/build/status/crowdin-api-client-js%20(MacOS)?branchName=master)](https://dev.azure.com/crowdin/crowdin-api-client-js/_build/latest?definitionId=7&branchName=master)
-|[![Azure DevOps tests (branch)](https://img.shields.io/azure-devops/tests/crowdin/crowdin-api-client-js/6/master?cacheSeconds=1800)](https://dev.azure.com/crowdin/crowdin-api-client-js/_build/latest?definitionId=6&branchName=master)|[![Azure DevOps tests (branch)](https://img.shields.io/azure-devops/tests/crowdin/crowdin-api-client-js/8/master?cacheSeconds=1800)](https://dev.azure.com/crowdin/crowdin-api-client-js/_build/latest?definitionId=8&branchName=master)|[![Azure DevOps tests (branch)](https://img.shields.io/azure-devops/tests/crowdin/crowdin-api-client-js/7/master?cacheSeconds=1800)](https://dev.azure.com/crowdin/crowdin-api-client-js/_build/latest?definitionId=7&branchName=master)
+[![License](https://img.shields.io/github/license/crowdin/crowdin-api-client-js?cacheSeconds=3600)](https://github.com/crowdin/crowdin-api-client-js/blob/master/LICENSE)
+  
+</div>
 
 ## Table of Contents
-* [Installation](#installation)
-* [Quick Start](#quick-start)
-* [Over-The-Air Content Delivery](#over-the-air-content-delivery)
-* [Seeking Assistance](#seeking-assistance)
-* [Contributing](#contributing)
-* [License](#license)
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Over-The-Air Content Delivery](#over-the-air-content-delivery)
+- [GraphQL API](#graphql-api)
+- [Seeking Assistance](#seeking-assistance)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation
 
 ### npm
+
   `npm i @crowdin/crowdin-api-client`
 
 ### yarn
+
   `yarn add @crowdin/crowdin-api-client`
 
 ## Quick Start
@@ -51,7 +56,7 @@ For more about Crowdin API v2 see the documentation:
 <summary>Typescript</summary>
 
 ```typescript
-import crowdin, { Credentials } from '@crowdin/crowdin-api-client';
+import crowdin, { Credentials, SourceFilesModel } from '@crowdin/crowdin-api-client';
 
 // credentials
 const credentials: Credentials = {
@@ -60,7 +65,12 @@ const credentials: Credentials = {
 };
 
 // initialization of crowdin client
-const { projectsGroupsApi } = new crowdin(credentials);
+const {
+  projectsGroupsApi,
+  uploadStorageApi,
+  sourceFilesApi,
+  translationsApi
+} = new crowdin(credentials);
 
 // get project list
 projectsGroupsApi.listProjects()
@@ -75,6 +85,40 @@ async function getProjects() {
   } catch (error) {
     console.error(error);
   }
+}
+
+// Create file with json content to translate
+async function createFile() {
+  const projectId = 123;
+  const fileData = {
+    title: 'Example',
+    description: 'Some Text'
+  };
+  const storage = await uploadStorageApi.addStorage('file1.json', fileData);
+  const file = await sourceFilesApi.createFile(projectId, {
+    name: 'file1.json',
+    title: 'Sample file',
+    storageId: storage.data.id,
+    type: 'json'
+  });
+  console.log(file);
+}
+
+// Download translations
+async function downloadTranslations() {
+  const projectId = 123;
+  const fileId = 456;
+  const language = 'de';
+  const downloadLink = await translationsApi.buildProjectFileTranslation(
+    projectId,
+    fileId,
+    {
+      targetLanguageId: language
+    }
+  );
+  const response = await fetch(downloadLink.data.url);
+  const translations = await response.json();
+  console.log(translations);
 }
 ```
 
@@ -107,7 +151,12 @@ projectsGroupsApi.listProjects()
 import crowdin from '@crowdin/crowdin-api-client';
 
 // initialization of crowdin client
-const { projectsGroupsApi } = new crowdin({
+const {
+  projectsGroupsApi,
+  uploadStorageApi,
+  sourceFilesApi,
+  translationsApi
+} = new crowdin.default({
   token: 'personalAccessToken',
   organization: 'organizationName' // optional
 });
@@ -125,6 +174,40 @@ async function getProjects() {
   } catch (error) {
     console.error(error);
   }
+}
+
+// Create file with json content to translate
+async function createFile() {
+  const projectId = 123;
+  const fileData = {
+    title: 'Example',
+    description: 'Some Text'
+  };
+  const storage = await uploadStorageApi.addStorage('file1.json', fileData);
+  const file = await sourceFilesApi.createFile(projectId, {
+    name: 'file1.json',
+    title: 'Sample file',
+    storageId: storage.data.id,
+    type: 'json'
+  });
+  console.log(file);
+}
+
+// Download translations
+async function downloadTranslations() {
+  const projectId = 123;
+  const fileId = 456;
+  const language = 'de';
+  const downloadLink = await translationsApi.buildProjectFileTranslation(
+    projectId,
+    fileId,
+    {
+      targetLanguageId: language
+    }
+  );
+  const response = await fetch(downloadLink.data.url);
+  const translations = await response.json();
+  console.log(translations);
 }
 ```
 
@@ -151,10 +234,15 @@ projectsGroupsApi.listProjects()
 <summary>Javascript CommonJS</summary>
 
 ```javascript
-const crowdin = require('@crowdin/crowdin-api-client').default;
+const crowdin = require('@crowdin/crowdin-api-client');
 
 // initialization of crowdin client
-const { projectsGroupsApi } = new crowdin({
+const {
+  projectsGroupsApi,
+  uploadStorageApi,
+  sourceFilesApi,
+  translationsApi
+} = new crowdin.default({
   token: 'personalAccessToken',
   organization: 'organizationName' // optional
 });
@@ -172,6 +260,40 @@ async function getProjects() {
   } catch (error) {
     console.error(error);
   }
+}
+
+// Create file with json content to translate
+async function createFile() {
+  const projectId = 123;
+  const fileData = {
+    title: 'Example',
+    description: 'Some Text'
+  };
+  const storage = await uploadStorageApi.addStorage('file1.json', fileData);
+  const file = await sourceFilesApi.createFile(projectId, {
+    name: 'file1.json',
+    title: 'Sample file',
+    storageId: storage.data.id,
+    type: 'json'
+  });
+  console.log(file);
+}
+
+// Download translations
+async function downloadTranslations() {
+  const projectId = 123;
+  const fileId = 456;
+  const language = 'de';
+  const downloadLink = await translationsApi.buildProjectFileTranslation(
+    projectId,
+    fileId,
+    {
+      targetLanguageId: language
+    }
+  );
+  const response = await fetch(downloadLink.data.url);
+  const translations = await response.json();
+  console.log(translations);
 }
 ```
 
@@ -196,6 +318,8 @@ projectsGroupsApi.listProjects()
 
 You can generate Personal Access Token in your Crowdin Account Settings.
 
+For more examples please check [Examples](EXAMPLES.md)
+
 ### List of projects with Fetch API
 
 In addition if you use client in non-Node.js environment you might have a troubles with http calls.
@@ -203,10 +327,10 @@ This client uses [axios](https://github.com/axios/axios) which internally uses `
 So there is an option to use http client based on [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) (keep in mind that `fetch` should be available in global scope).
 
 ```typescript
-import { ProjectsGroups, HttpClientType } from '@crowdin/crowdin-api-client';
+import { ProjectsGroups } from '@crowdin/crowdin-api-client';
 
 const projectsGroupsApi = new ProjectsGroups(credentials, {
-  httpClientType: HttpClientType.FETCH
+  httpClientType: 'fetch'
 });
 ```
 
@@ -245,7 +369,7 @@ projectsGroupsApi
 There is a possibility to configure client invoke http calls with retry mechanism.
 
 ```typescript
-import { ProjectsGroups, HttpClientType } from '@crowdin/crowdin-api-client';
+import { ProjectsGroups } from '@crowdin/crowdin-api-client';
 
 const projectsGroupsApi = new ProjectsGroups(credentials, {
   retryConfig: {
@@ -262,11 +386,97 @@ const projectsGroupsApi = new ProjectsGroups(credentials, {
 });
 ```
 
+### Exception handling
+
+In case of error library will throw an `Error` based exception. This can either be a generic error with an error message and a code, or a validation error that additionally contains validation error codes.
+
+```javascript
+const crowdin = require('@crowdin/crowdin-api-client');
+
+const token = '';
+
+const { translationsApi } = new crowdin.default({ token });
+
+async function test() {
+  const project = 123;
+  const dir = 456;
+  try {
+    const res = await translationsApi.buildProjectDirectoryTranslation(project, dir);
+    console.log(JSON.stringify(res));
+  } catch (e) {
+    if (e instanceof crowdin.CrowdinValidationError) {
+      console.log('Validation error');
+    } else if (e instanceof crowdin.CrowdinError) {
+      console.log('Generic error');
+    }
+    console.error(e);
+  }
+}
+
+test();
+```
+
+### Http request timeout
+
+By default request timeout will vary on http client implementation and/or environment (e.g. `fetch` uses timeout configured by the browser).  
+But there is an option to set constant value:
+
+```javascript
+const crowdin = require('@crowdin/crowdin-api-client');
+
+const credentials = { token: 'token' };
+
+const httpRequestTimeout = 60 * 1000; // 60 seconds
+
+const client = new crowdin.default(credentials, { httpRequestTimeout });
+```
+
 ## Over-The-Air Content Delivery
 
 :dizzy: Recommended for translations delivery to your website or mobile application.
 
 You can also use the [Crowdin OTA Client JS](https://github.com/crowdin/ota-client-js) library to send the translated content to your web apps via content delivery. Crowdin Content Delivery uses a CDN vault that mirrors your project’s translated content. The updated translations will become available to users much faster.
+
+## GraphQL API
+
+This library also provides possibility to use [GraphQL API](https://developer.crowdin.com/graphql-api/) (only for Crowdin Enterprise).
+
+```javascript
+const crowdin = require('@crowdin/crowdin-api-client');
+
+const client = new crowdin.default({
+  token: '{token}',
+  organization: '{organization}'
+});
+
+const query = `
+query {
+  viewer {
+    projects(first: 50) {
+      edges {
+        node {
+          name
+  
+          files(first: 10) {
+            totalCount
+            edges {
+              node {
+                name
+                type
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`;
+
+client
+  .graphql({ query })
+  .then(res => console.log(JSON.stringify(res, null, 2)));
+```
 
 ## Seeking Assistance
 
@@ -278,10 +488,15 @@ Need help working with Crowdin JavaScript client or have any questions? [Contact
 
 If you want to contribute please read the [Contributing](/CONTRIBUTING.md) guidelines.
 
+## Security
+
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B40134%2F192ac70bb4ea8a4ba1051e955aa05572.svg?type=large&issueType=license)](https://app.fossa.com/projects/custom%2B40134%2F192ac70bb4ea8a4ba1051e955aa05572?ref=badge_large&issueType=license)
+
 ## License
+
 <pre>
-The Crowdin JavaScript client is licensed under the MIT License. 
-See the LICENSE.md file distributed with this work for additional 
+The Crowdin JavaScript client is licensed under the MIT License.
+See the LICENSE.md file distributed with this work for additional
 information regarding copyright ownership.
 
 Except as contained in the LICENSE file, the name(s) of the above copyright

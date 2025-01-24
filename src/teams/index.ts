@@ -1,9 +1,46 @@
-import { CrowdinApi, Pagination, PatchRequest, ResponseList, ResponseObject } from '../core';
+import {
+    CrowdinApi,
+    isOptionalNumber,
+    Pagination,
+    PaginationOptions,
+    PatchRequest,
+    ProjectRole,
+    ResponseList,
+    ResponseObject,
+} from '../core';
+import { ProjectsGroupsModel } from '../projectsGroups';
 
 export class Teams extends CrowdinApi {
     /**
+     * @param teamId team identifier
+     * @param options request options
+     * @see https://developer.crowdin.com/enterprise/api/v2/#operation/api.teams.projects.permissions.getMany
+     */
+    listTeamProjectPermissions(
+        teamId: number,
+        options?: PaginationOptions,
+    ): Promise<ResponseList<TeamsModel.ProjectPermissions>> {
+        const url = `${this.url}/teams/${teamId}/projects/permissions`;
+        return this.getList(url, options?.limit, options?.offset);
+    }
+
+    /**
+     * @param teamId team identifier
+     * @param request request body
+     * @see https://developer.crowdin.com/enterprise/api/v2/#operation/api.teams.projects.permissions.patch
+     */
+    editTeamProjectPermissions(
+        teamId: number,
+        request: PatchRequest[],
+    ): Promise<ResponseList<TeamsModel.ProjectPermissions>> {
+        const url = `${this.url}/teams/${teamId}/projects/permissions`;
+        return this.patch(url, request, this.defaultConfig());
+    }
+
+    /**
      * @param projectId project identifier
      * @param request request body
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.projects.teams.post
      */
     addTeamToProject(
         projectId: number,
@@ -14,16 +51,32 @@ export class Teams extends CrowdinApi {
     }
 
     /**
+     * @param options optional pagination parameters for the request
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.getMany
+     */
+    listTeams(options?: PaginationOptions): Promise<ResponseList<TeamsModel.Team>>;
+    /**
      * @param limit maximum number of items to retrieve (default 25)
      * @param offset starting offset in the collection (default 0)
+     * @deprecated optional parameters should be passed through an object
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.getMany
      */
-    listTeams(limit?: number, offset?: number): Promise<ResponseList<TeamsModel.Team>> {
-        const url = `${this.url}/teams`;
-        return this.getList(url, limit, offset);
+    listTeams(limit?: number, offset?: number): Promise<ResponseList<TeamsModel.Team>>;
+    listTeams(
+        options?: number | ({ orderBy?: string } & PaginationOptions),
+        deprecatedOffset?: number,
+    ): Promise<ResponseList<TeamsModel.Team>> {
+        if (isOptionalNumber(options, '0' in arguments)) {
+            options = { limit: options, offset: deprecatedOffset };
+        }
+        let url = `${this.url}/teams`;
+        url = this.addQueryParam(url, 'orderBy', options.orderBy);
+        return this.getList(url, options.limit, options.offset);
     }
 
     /**
      * @param request request body
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.post
      */
     addTeam(request: TeamsModel.AddTeamRequest): Promise<ResponseObject<TeamsModel.Team>> {
         const url = `${this.url}/teams`;
@@ -32,6 +85,7 @@ export class Teams extends CrowdinApi {
 
     /**
      * @param teamId team identifier
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.get
      */
     getTeam(teamId: number): Promise<ResponseObject<TeamsModel.Team>> {
         const url = `${this.url}/teams/${teamId}`;
@@ -40,6 +94,7 @@ export class Teams extends CrowdinApi {
 
     /**
      * @param teamId team identifier
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.delete
      */
     deleteTeam(teamId: number): Promise<void> {
         const url = `${this.url}/teams/${teamId}`;
@@ -49,6 +104,7 @@ export class Teams extends CrowdinApi {
     /**
      * @param teamId team identifier
      * @param request request body
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.patch
      */
     editTeam(teamId: number, request: PatchRequest[]): Promise<ResponseObject<TeamsModel.Team>> {
         const url = `${this.url}/teams/${teamId}`;
@@ -57,17 +113,34 @@ export class Teams extends CrowdinApi {
 
     /**
      * @param teamId team identifier
+     * @param options optional pagination parameters for the request
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.members.getMany
+     */
+    teamMembersList(teamId: number, options?: PaginationOptions): Promise<ResponseList<TeamsModel.TeamMember>>;
+    /**
+     * @param teamId team identifier
      * @param limit maximum number of items to retrieve (default 25)
      * @param offset starting offset in the collection (default 0)
+     * @deprecated optional parameters should be passed through an object
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.members.getMany
      */
-    teamMembersList(teamId: number, limit?: number, offset?: number): Promise<ResponseList<TeamsModel.TeamMember>> {
+    teamMembersList(teamId: number, limit?: number, offset?: number): Promise<ResponseList<TeamsModel.TeamMember>>;
+    teamMembersList(
+        teamId: number,
+        options?: number | PaginationOptions,
+        deprecatedOffset?: number,
+    ): Promise<ResponseList<TeamsModel.TeamMember>> {
+        if (isOptionalNumber(options, '1' in arguments)) {
+            options = { limit: options, offset: deprecatedOffset };
+        }
         const url = `${this.url}/teams/${teamId}/members`;
-        return this.getList(url, limit, offset);
+        return this.getList(url, options.limit, options.offset);
     }
 
     /**
      * @param teamId team identifier
      * @param request request body
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.members.post
      */
     addTeamMembers(
         teamId: number,
@@ -79,6 +152,7 @@ export class Teams extends CrowdinApi {
 
     /**
      * @param teamId team identifier
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.members.deleteMany
      */
     deleteAllTeamMembers(teamId: number): Promise<void> {
         const url = `${this.url}/teams/${teamId}/members`;
@@ -88,6 +162,7 @@ export class Teams extends CrowdinApi {
     /**
      * @param teamId team identifier
      * @param memberId member identifier
+     * @see https://support.crowdin.com/enterprise/api/#operation/api.teams.members.delete
      */
     deleteTeamMember(teamId: number, memberId: number): Promise<void> {
         const url = `${this.url}/teams/${teamId}/members/${memberId}`;
@@ -96,11 +171,25 @@ export class Teams extends CrowdinApi {
 }
 
 export namespace TeamsModel {
+    export interface ProjectPermissions {
+        id: number;
+        roles: ProjectRole[];
+        project: ProjectsGroupsModel.Project | ProjectsGroupsModel.ProjectSettings;
+    }
+
     export interface AddTeamToProjectRequest {
         teamId: number;
-        accessToAllWorkflowSteps?: boolean;
         managerAccess?: boolean;
-        permissions?: any;
+        developerAccess?: boolean;
+        roles?: ProjectRole[];
+        /**
+         * @deprecated
+         */
+        accessToAllWorkflowSteps?: boolean;
+        /**
+         * @deprecated
+         */
+        permissions?: Permissions;
     }
 
     export interface ProjectTeamResources {
@@ -111,14 +200,27 @@ export namespace TeamsModel {
     export interface ProjectTeamResource {
         id: number;
         hasManagerAccess: boolean;
+        hasDeveloperAccess: boolean;
+        /**
+         * @deprecated
+         */
         hasAccessToAllWorkflowSteps: boolean;
-        permissions: any;
+        /**
+         * @deprecated
+         */
+        permissions: Permissions;
+        roles: ProjectRole[];
+    }
+
+    export interface Permissions {
+        [lang: string]: { workflowStepIds: number[] | 'all' };
     }
 
     export interface Team {
         id: number;
         name: string;
         totalMembers: number;
+        webUrl: string;
         createdAt: string;
         updatedAt: string;
     }

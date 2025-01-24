@@ -1,5 +1,5 @@
 import * as nock from 'nock';
-import { Credentials, StringTranslations, StringTranslationsModel } from '../../src';
+import { Credentials, StringTranslations } from '../../src';
 
 describe('String Translations API', () => {
     let scope: nock.Scope;
@@ -15,7 +15,7 @@ describe('String Translations API', () => {
     const languageId = 'fr';
     const text = 'test';
     const voteId = 1234;
-    const mark = StringTranslationsModel.Mark.DOWN;
+    const mark = 'down';
 
     const limit = 25;
 
@@ -55,6 +55,15 @@ describe('String Translations API', () => {
                     id: approvalId,
                 },
             })
+            .delete(`/projects/${projectId}/approvals`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .query({
+                stringId: stringId,
+            })
+            .reply(200)
             .get(`/projects/${projectId}/approvals/${approvalId}`, undefined, {
                 reqheaders: {
                     Authorization: `Bearer ${api.token}`,
@@ -87,6 +96,20 @@ describe('String Translations API', () => {
                 pagination: {
                     offset: 0,
                     limit: limit,
+                },
+            })
+            .post(`/projects/${projectId}/translations/alignment`, {
+                sourceLanguageId: languageId,
+                targetLanguageId: languageId,
+                text: 'test',
+            })
+            .reply(200, {
+                data: {
+                    words: [
+                        {
+                            text: 'test',
+                        },
+                    ],
                 },
             })
             .get(`/projects/${projectId}/translations`, undefined, {
@@ -136,7 +159,6 @@ describe('String Translations API', () => {
             })
             .query({
                 stringId: stringId,
-                languageId: languageId,
             })
             .reply(200)
             .get(`/projects/${projectId}/translations/${translationId}`, undefined, {
@@ -156,7 +178,7 @@ describe('String Translations API', () => {
             })
             .reply(200)
             .put(
-                `/projects/${projectId}/translations/${translationId}/restore`,
+                `/projects/${projectId}/translations/${translationId}`,
                 {},
                 {
                     reqheaders: {
@@ -240,6 +262,10 @@ describe('String Translations API', () => {
         expect(approval.data.id).toBe(approvalId);
     });
 
+    it('Remove String Approvals', async () => {
+        await api.removeStringApprovals(projectId, stringId);
+    });
+
     it('Approval Info', async () => {
         const approval = await api.approvalInfo(projectId, approvalId);
         expect(approval.data.id).toBe(approvalId);
@@ -254,6 +280,16 @@ describe('String Translations API', () => {
         expect(translations.data.length).toBe(1);
         expect(translations.data[0].data.stringId).toBe(stringId);
         expect(translations.pagination.limit).toBe(limit);
+    });
+
+    it('Translation Alignment', async () => {
+        const res = await api.translationAlignment(projectId, {
+            sourceLanguageId: languageId,
+            targetLanguageId: languageId,
+            text: 'test',
+        });
+        expect(res.data.words.length).toBe(1);
+        expect(res.data.words[0].text).toBe('test');
     });
 
     it('List String Translations', async () => {
@@ -273,7 +309,7 @@ describe('String Translations API', () => {
     });
 
     it('Delete All Translations', async () => {
-        await api.deleteAllTranslations(projectId, stringId, languageId);
+        await api.deleteAllTranslations(projectId, stringId);
     });
 
     it('Translation Info', async () => {

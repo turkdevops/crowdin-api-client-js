@@ -1,87 +1,210 @@
-import { CrowdinApi, ResponseList } from '../core';
+import { CrowdinApi, isOptionalNumber, PaginationOptions, ResponseList } from '../core';
+import { LanguagesModel } from '../languages';
 
+/**
+ * Status represents the general localization progress on both translations and proofreading.
+ *
+ * Use API to check translation and proofreading progress on different levels: file, language, branch, directory.
+ */
 export class TranslationStatus extends CrowdinApi {
+    /**
+     * @param projectId project identifier
+     * @param branchId branch identifier
+     * @param options optional pagination parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.branches.languages.progress.getMany
+     */
+    getBranchProgress(
+        projectId: number,
+        branchId: number,
+        options?: PaginationOptions,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>>;
     /**
      * @param projectId project identifier
      * @param branchId branch identifier
      * @param limit maximum number of items to retrieve (default 25)
      * @param offset starting offset in the collection (default 0)
+     * @deprecated optional parameters should be passed through an object
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.branches.languages.progress.getMany
      */
     getBranchProgress(
         projectId: number,
         branchId: number,
         limit?: number,
         offset?: number,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>>;
+    getBranchProgress(
+        projectId: number,
+        branchId: number,
+        options?: number | PaginationOptions,
+        deprecatedOffset?: number,
     ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>> {
+        if (isOptionalNumber(options, '2' in arguments)) {
+            options = { limit: options, offset: deprecatedOffset };
+        }
         const url = `${this.url}/projects/${projectId}/branches/${branchId}/languages/progress`;
-        return this.getList(url, limit, offset);
+        return this.getList(url, options.limit, options.offset);
     }
 
     /**
      * @param projectId project identifier
      * @param directoryId directory identifier
+     * @param options optional pagination parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.directories.languages.progress.getMany
+     */
+    getDirectoryProgress(
+        projectId: number,
+        directoryId: number,
+        options?: PaginationOptions,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>>;
+    /**
+     * @param projectId project identifier
+     * @param directoryId directory identifier
      * @param limit maximum number of items to retrieve (default 25)
      * @param offset starting offset in the collection (default 0)
+     * @deprecated optional parameters should be passed through an object
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.directories.languages.progress.getMany
      */
     getDirectoryProgress(
         projectId: number,
         directoryId: number,
         limit?: number,
         offset?: number,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>>;
+    getDirectoryProgress(
+        projectId: number,
+        directoryId: number,
+        options?: number | PaginationOptions,
+        deprecatedOffset?: number,
     ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>> {
+        if (isOptionalNumber(options, '2' in arguments)) {
+            options = { limit: options, offset: deprecatedOffset };
+        }
         const url = `${this.url}/projects/${projectId}/directories/${directoryId}/languages/progress`;
-        return this.getList(url, limit, offset);
-    }
-
-    /**
-     * @param projectId project identifier
-     * @param languageId language identifier
-     * @param limit maximum number of items to retrieve (default 25)
-     * @param offset starting offset in the collection (default 0)
-     */
-    getLanguageProgress(
-        projectId: number,
-        languageId: string,
-        limit?: number,
-        offset?: number,
-    ): Promise<ResponseList<TranslationStatusModel.FileProgress>> {
-        const url = `${this.url}/projects/${projectId}/languages/${languageId}/progress`;
-        return this.getList(url, limit, offset);
-    }
-
-    /**
-     * @param projectId project identifier
-     * @param limit maximum number of items to retrieve (default 25)
-     * @param offset starting offset in the collection (default 0)
-     * @param languageIds language identifier for filter
-     */
-    getProjectProgress(
-        projectId: number,
-        limit?: number,
-        offset?: number,
-        languageIds?: string,
-    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>> {
-        let url = `${this.url}/projects/${projectId}/languages/progress`;
-        url = this.addQueryParam(url, 'languageIds', languageIds);
-        return this.getList(url, limit, offset);
+        return this.getList(url, options.limit, options.offset);
     }
 
     /**
      * @param projectId project identifier
      * @param fileId file identifier
+     * @param options optional pagination parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.files.languages.progress.getMany
+     */
+    getFileProgress(
+        projectId: number,
+        fileId: number,
+        options?: PaginationOptions,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>>;
+    /**
+     * @param projectId project identifier
+     * @param fileId file identifier
      * @param limit maximum number of items to retrieve (default 25)
      * @param offset starting offset in the collection (default 0)
+     * @deprecated optional parameters should be passed through an object
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.files.languages.progress.getMany
      */
     getFileProgress(
         projectId: number,
         fileId: number,
         limit?: number,
         offset?: number,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>>;
+    getFileProgress(
+        projectId: number,
+        fileId: number,
+        options?: number | PaginationOptions,
+        deprecatedOffset?: number,
     ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>> {
+        if (isOptionalNumber(options, '2' in arguments)) {
+            options = { limit: options, offset: deprecatedOffset };
+        }
         const url = `${this.url}/projects/${projectId}/files/${fileId}/languages/progress`;
-        return this.getList(url, limit, offset);
+        return this.getList(url, options.limit, options.offset);
     }
 
+    /**
+     * @param projectId project identifier
+     * @param languageId language identifier
+     * @param options optional pagination parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.languages.files.progress.getMany
+     */
+    getLanguageProgress(
+        projectId: number,
+        languageId: string,
+        options?: PaginationOptions,
+    ): Promise<ResponseList<TranslationStatusModel.FileProgress>>;
+    /**
+     * @param projectId project identifier
+     * @param languageId language identifier
+     * @param limit maximum number of items to retrieve (default 25)
+     * @param offset starting offset in the collection (default 0)
+     * @deprecated optional parameters should be passed through an object
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.languages.files.progress.getMany
+     */
+    getLanguageProgress(
+        projectId: number,
+        languageId: string,
+        limit?: number,
+        offset?: number,
+    ): Promise<ResponseList<TranslationStatusModel.FileProgress>>;
+    getLanguageProgress(
+        projectId: number,
+        languageId: string,
+        options?: number | PaginationOptions,
+        deprecatedOffset?: number,
+    ): Promise<ResponseList<TranslationStatusModel.FileProgress>> {
+        if (isOptionalNumber(options, '2' in arguments)) {
+            options = { limit: options, offset: deprecatedOffset };
+        }
+        const url = `${this.url}/projects/${projectId}/languages/${languageId}/progress`;
+        return this.getList(url, options.limit, options.offset);
+    }
+
+    /**
+     * @param projectId project identifier
+     * @param options optional parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.languages.progress.getMany
+     */
+    getProjectProgress(
+        projectId: number,
+        options?: PaginationOptions,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>>;
+    /**
+     * @param projectId project identifier
+     * @param limit maximum number of items to retrieve (default 25)
+     * @param offset starting offset in the collection (default 0)
+     * @param languageIds language identifier for filter
+     * @deprecated optional parameters should be passed through an object
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.languages.progress.getMany
+     */
+    getProjectProgress(
+        projectId: number,
+        limit?: number,
+        offset?: number,
+        languageIds?: string,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>>;
+    getProjectProgress(
+        projectId: number,
+        options?: number | TranslationStatusModel.GetProjectProgressOptions,
+        deprecatedOffset?: number,
+        deprecatedLanguageIds?: string,
+    ): Promise<ResponseList<TranslationStatusModel.LanguageProgress>> {
+        if (isOptionalNumber(options, '1' in arguments)) {
+            options = { limit: options, offset: deprecatedOffset, languageIds: deprecatedLanguageIds };
+        }
+        let url = `${this.url}/projects/${projectId}/languages/progress`;
+        url = this.addQueryParam(url, 'languageIds', options.languageIds);
+        return this.getList(url, options.limit, options.offset);
+    }
+
+    /**
+     * @param projectId project identifier
+     * @param options optional parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.qa-checks.getMany
+     */
+    listQaCheckIssues(
+        projectId: number,
+        options?: TranslationStatusModel.ListQaCheckIssuesOptions,
+    ): Promise<ResponseList<TranslationStatusModel.QaCheck>>;
     /**
      * @param projectId project identifier
      * @param limit maximum number of items to retrieve (default 25)
@@ -89,6 +212,8 @@ export class TranslationStatus extends CrowdinApi {
      * @param category defines the issue category
      * @param validation defines the QA check issue validation type
      * @param languageIds filter progress by languageId
+     * @deprecated optional parameters should be passed through an object
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.qa-checks.getMany
      */
     listQaCheckIssues(
         projectId: number,
@@ -98,45 +223,63 @@ export class TranslationStatus extends CrowdinApi {
         validation?: TranslationStatusModel.Validation,
         languageIds?: string,
     ): Promise<ResponseList<TranslationStatusModel.QaCheck>>;
-
     listQaCheckIssues(
         projectId: number,
-        limitOrRequest?: number | TranslationStatusModel.ListQaCheckIssuesRequest,
-        offset?: number,
-        category?: TranslationStatusModel.Category,
-        validation?: TranslationStatusModel.Validation,
-        languageIds?: string,
+        options?: number | TranslationStatusModel.ListQaCheckIssuesOptions,
+        deprecatedOffset?: number,
+        deprecatedCategory?: TranslationStatusModel.Category,
+        deprecatedValidation?: TranslationStatusModel.Validation,
+        deprecatedLanguageIds?: string,
     ): Promise<ResponseList<TranslationStatusModel.QaCheck>> {
         let url = `${this.url}/projects/${projectId}/qa-checks`;
-        let request: TranslationStatusModel.ListQaCheckIssuesRequest;
-        if (limitOrRequest && typeof limitOrRequest === 'object') {
-            request = limitOrRequest;
-        } else {
-            request = { limit: limitOrRequest, offset, category, validation, languageIds };
+        if (isOptionalNumber(options, '1' in arguments)) {
+            options = {
+                limit: options,
+                offset: deprecatedOffset,
+                category: deprecatedCategory,
+                validation: deprecatedValidation,
+                languageIds: deprecatedLanguageIds,
+            };
         }
-        url = this.addQueryParam(url, 'category', request.category);
-        url = this.addQueryParam(url, 'validation', request.validation);
-        url = this.addQueryParam(url, 'languageIds', request.languageIds);
-        return this.getList(url, request.limit, request.offset);
+        url = this.addQueryParam(
+            url,
+            'category',
+            Array.isArray(options.category) ? options.category.join(',') : options.category,
+        );
+        url = this.addQueryParam(
+            url,
+            'validation',
+            Array.isArray(options.validation) ? options.validation.join(',') : options.validation,
+        );
+        url = this.addQueryParam(url, 'languageIds', options.languageIds);
+        return this.getList(url, options.limit, options.offset);
     }
 }
 
 export namespace TranslationStatusModel {
     export interface LanguageProgress {
-        languageId: string;
         words: Words;
         phrases: Words;
         translationProgress: number;
         approvalProgress: number;
         eTag: string;
+        languageId: string;
+        language: LanguagesModel.Language;
     }
 
     export interface FileProgress {
-        fileId: number;
         words: Words;
         phrases: Words;
         translationProgress: number;
         approvalProgress: number;
+        /**
+         * for strings-based projects
+         */
+        branchId: number;
+        /**
+         * for non strings-based projects
+         */
+        fileId: number;
         eTag: string;
     }
 
@@ -144,67 +287,64 @@ export namespace TranslationStatusModel {
         total: number;
         translated: number;
         approved: number;
+        preTranslateAppliedTo: number;
     }
 
-    export enum Category {
-        EMPTY = 'empty',
-        VARIABLES = 'variables',
-        TAGS = 'tags',
-        PUNCTUATION = 'punctuation',
-        SYMBOL_REGISTER = 'symbol_register',
-        SPACES = 'spaces',
-        SIZE = 'size',
-        SPECIAL_SYMBOLS = 'special_symbols',
-        WRONG_TRANSLATION = 'wrong_translation',
-        SPELLCHECK = 'spellcheck',
-        ICU = 'icu',
-    }
+    export type Category =
+        | 'empty'
+        | 'variables'
+        | 'tags'
+        | 'punctuation'
+        | 'symbol_register'
+        | 'spaces'
+        | 'size'
+        | 'special_symbols'
+        | 'wrong_translation'
+        | 'spellcheck'
+        | 'icu';
 
-    export enum Validation {
-        EMPTY_STRING_CHECK = 'empty_string_check',
-        EMPTY_SUGGESTION_CHECK = 'empty_suggestion_check',
-        MAX_LENGTH_CHECK = 'max_length_check',
-        TAGS_CHECK = 'tags_check',
-        MISMATCH_IDS_CHECK = 'mismatch_ids_check',
-        CDATA_CHECK = 'cdata_check',
-        SPECIALS_SYMBOLS_CHECK = 'specials_symbols_check',
-        LEADING_NEWLINES_CHECK = 'leading_newlines_check',
-        TRAILING_NEWLINES_CHECK = 'trailing_newlines_check',
-        LEADING_SPACES_CHECK = 'leading_spaces_check',
-        TRAILING_SPACES_CHECK = 'trailing_spaces_check',
-        MULTIPLE_SPACES_CHECK = 'multiple_spaces_check',
-        CUSTOM_BLOCKED_VARIABLES_CHECK = 'custom_blocked_variables_check',
-        HIGHEST_PRIORITY_CUSTOM_VARIABLES_CHECK = 'highest_priority_custom_variables_check',
-        HIGHEST_PRIORITY_VARIABLES_CHECK = 'highest_priority_variables_check',
-        C_VARIABLES_CHECK = 'c_variables_check',
-        PYTHON_VARIABLES_CHECK = 'python_variables_check',
-        RAILS_VARIABLES_CHECK = 'rails_variables_check',
-        JAVA_VARIABLES_CHECK = 'java_variables_check',
-        DOT_NET_VARIABLES_CHECK = 'dot_net_variables_check',
-        TWIG_VARIABLES_CHECK = 'twig_variables_check',
-        PHP_VARIABLES_CHECK = 'php_variables_check',
-        FREEMARKER_VARIABLES_CHECK = 'freemarker_variables_check',
-        LOWEST_PRIORITY_VARIABLE_CHECK = 'lowest_priority_variable_check',
-        LOWEST_PRIORITY_CUSTOM_VARIABLES_CHECK = 'lowest_priority_custom_variables_check',
-        PUNCTUATION_CHECK = 'punctuation_check',
-        SPACES_BEFORE_PUNCTUATION_CHECK = 'spaces_before_punctuation_check',
-        SPACES_AFTER_PUNCTUATION_CHECK = 'spaces_after_punctuation_check',
-        NON_BREAKING_SPACES_CHECK = 'non_breaking_spaces_check',
-        CAPITALIZE_CHECK = 'capitalize_check',
-        MULTIPLE_UPPERCASE_CHECK = 'multiple_uppercase_check',
-        PARENTHESES_CHECK = 'parentheses_check',
-        ENTITIES_CHECK = 'entities_check',
-        ESCAPED_QUOTES_CHECK = 'escaped_quotes_check',
-        WRONG_TRANSLATION_ISSUE_CHECK = 'wrong_translation_issue_check',
-        SPELLCHECK = 'spellcheck',
-        ICU_CHECK = 'icu_check',
-    }
+    export type Validation =
+        | 'empty_string_check'
+        | 'empty_suggestion_check'
+        | 'max_length_check'
+        | 'tags_check'
+        | 'mismatch_ids_check'
+        | 'cdata_check'
+        | 'specials_symbols_check'
+        | 'leading_newlines_check'
+        | 'trailing_newlines_check'
+        | 'leading_spaces_check'
+        | 'trailing_spaces_check'
+        | 'multiple_spaces_check'
+        | 'custom_blocked_variables_check'
+        | 'highest_priority_custom_variables_check'
+        | 'highest_priority_variables_check'
+        | 'c_variables_check'
+        | 'python_variables_check'
+        | 'rails_variables_check'
+        | 'java_variables_check'
+        | 'dot_net_variables_check'
+        | 'twig_variables_check'
+        | 'php_variables_check'
+        | 'freemarker_variables_check'
+        | 'lowest_priority_variable_check'
+        | 'lowest_priority_custom_variables_check'
+        | 'punctuation_check'
+        | 'spaces_before_punctuation_check'
+        | 'spaces_after_punctuation_check'
+        | 'non_breaking_spaces_check'
+        | 'capitalize_check'
+        | 'multiple_uppercase_check'
+        | 'parentheses_check'
+        | 'entities_check'
+        | 'escaped_quotes_check'
+        | 'wrong_translation_issue_check'
+        | 'spellcheck'
+        | 'icu_check';
 
-    export interface ListQaCheckIssuesRequest {
-        limit?: number;
-        offset?: number;
-        category?: Category;
-        validation?: Validation;
+    export interface ListQaCheckIssuesOptions extends PaginationOptions {
+        category?: Category | Category[];
+        validation?: Validation | Validation[];
         languageIds?: string;
     }
 
@@ -217,5 +357,9 @@ export namespace TranslationStatusModel {
         validationDescription: string;
         pluralId: number;
         text: string;
+    }
+
+    export interface GetProjectProgressOptions extends PaginationOptions {
+        languageIds?: string;
     }
 }

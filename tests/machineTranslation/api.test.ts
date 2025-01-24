@@ -1,5 +1,5 @@
 import * as nock from 'nock';
-import { Credentials, MachineTranslation, PatchOperation } from '../../src';
+import { Credentials, MachineTranslation } from '../../src';
 
 describe('Machine Translation engines (MTs) API', () => {
     let scope: nock.Scope;
@@ -12,6 +12,8 @@ describe('Machine Translation engines (MTs) API', () => {
     const groupId = 3;
     const name = 'test';
     const type = 'type';
+    const lang = 'us';
+    const apiKey = 'test';
 
     const limit = 25;
 
@@ -43,7 +45,7 @@ describe('Machine Translation engines (MTs) API', () => {
                 {
                     name: name,
                     type: type,
-                    credentials: [],
+                    credentials: { apiKey },
                 },
                 {
                     reqheaders: {
@@ -77,7 +79,7 @@ describe('Machine Translation engines (MTs) API', () => {
                 [
                     {
                         value: name,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/name',
                     },
                 ],
@@ -92,6 +94,22 @@ describe('Machine Translation engines (MTs) API', () => {
                     id: mtId,
                     name: name,
                 },
+            })
+            .post(
+                `/mts/${mtId}/translations`,
+                {
+                    targetLanguageId: lang,
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: {
+                    targetLanguageId: lang,
+                },
             });
     });
 
@@ -100,7 +118,7 @@ describe('Machine Translation engines (MTs) API', () => {
     });
 
     it('List MTs', async () => {
-        const mts = await api.listMts(groupId);
+        const mts = await api.listMts({ groupId });
         expect(mts.data.length).toBe(1);
         expect(mts.data[0].data.id).toBe(mtId);
         expect(mts.pagination.limit).toBe(limit);
@@ -110,7 +128,7 @@ describe('Machine Translation engines (MTs) API', () => {
         const mt = await api.createMt({
             name: name,
             type: type,
-            credentials: [],
+            credentials: { apiKey },
         });
         expect(mt.data.id).toBe(mtId);
     });
@@ -127,12 +145,19 @@ describe('Machine Translation engines (MTs) API', () => {
     it('Update MT', async () => {
         const mt = await api.updateMt(mtId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/name',
                 value: name,
             },
         ]);
         expect(mt.data.id).toBe(mtId);
         expect(mt.data.name).toBe(name);
+    });
+
+    it('Translate via MT', async () => {
+        const translations = await api.translate(mtId, {
+            targetLanguageId: lang,
+        });
+        expect(translations.data.targetLanguageId).toBe(lang);
     });
 });

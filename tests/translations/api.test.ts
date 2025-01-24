@@ -15,14 +15,36 @@ describe('Translations API', () => {
     const url = 'test.com';
     const storageId = 5;
     const fileId = 51;
+    const branchId = 71;
     const directoryId = 61;
     const progress = 50;
     const languageId = 'uk';
+    const sampleLabelIds = [101, 102];
+    const sampleExcludeLabelIds = [103, 104];
+    const sampleStatus = 'canceled';
 
     const limit = 25;
 
     beforeAll(() => {
         scope = nock(api.url)
+            .get(`/projects/${projectId}/pre-translations`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: [
+                    {
+                        data: {
+                            identifier: preTranslationId,
+                        },
+                    },
+                ],
+                pagination: {
+                    offset: 0,
+                    limit: limit,
+                },
+            })
             .post(
                 `/projects/${projectId}/pre-translations`,
                 {
@@ -45,6 +67,26 @@ describe('Translations API', () => {
                     Authorization: `Bearer ${api.token}`,
                 },
             })
+            .reply(200, {
+                data: {
+                    identifier: preTranslationId,
+                },
+            })
+            .patch(
+                `/projects/${projectId}/pre-translations/${preTranslationId}`,
+                [
+                    {
+                        value: sampleStatus,
+                        op: 'replace',
+                        path: '/status',
+                    },
+                ],
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
             .reply(200, {
                 data: {
                     identifier: preTranslationId,
@@ -143,8 +185,8 @@ describe('Translations API', () => {
             .post(
                 `/projects/${projectId}/translations/${languageId}`,
                 {
-                    storageId: storageId,
-                    fileId: fileId,
+                    storageId,
+                    fileId,
                 },
                 {
                     reqheaders: {
@@ -155,6 +197,26 @@ describe('Translations API', () => {
             .reply(200, {
                 data: {
                     fileId,
+                    storageId,
+                    languageId,
+                    projectId,
+                },
+            })
+            .post(
+                `/projects/${projectId}/translations/${languageId}`,
+                {
+                    storageId,
+                    branchId,
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: {
+                    branchId,
                     storageId,
                     languageId,
                     projectId,
@@ -175,11 +237,38 @@ describe('Translations API', () => {
                 data: {
                     url: url,
                 },
+            })
+            .post(
+                `/projects/${projectId}/pre-translations`,
+                {
+                    languageIds: [],
+                    fileIds: [],
+                    labelIds: sampleLabelIds,
+                    excludeLabelIds: sampleExcludeLabelIds,
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: {
+                    identifier: preTranslationId,
+                    attributes: {},
+                },
             });
     });
 
     afterAll(() => {
         scope.done();
+    });
+
+    it('List Pre-Translations', async () => {
+        const preTranslations = await api.listPreTranslations(projectId);
+        expect(preTranslations.data.length).toBe(1);
+        expect(preTranslations.data[0].data.identifier).toBe(preTranslationId);
+        expect(preTranslations.pagination.limit).toBe(limit);
     });
 
     it('Apply Pre-Translation', async () => {
@@ -190,8 +279,29 @@ describe('Translations API', () => {
         expect(preTranslation.data.identifier).toBe(preTranslationId);
     });
 
+    it('Apply Pre-Translation with Label Filters', async () => {
+        const preTranslation = await api.applyPreTranslation(projectId, {
+            fileIds: [],
+            languageIds: [],
+            labelIds: sampleLabelIds,
+            excludeLabelIds: sampleExcludeLabelIds,
+        });
+        expect(preTranslation.data.identifier).toBe(preTranslationId);
+    });
+
     it('Pre-translation status', async () => {
         const preTranslation = await api.preTranslationStatus(projectId, preTranslationId);
+        expect(preTranslation.data.identifier).toBe(preTranslationId);
+    });
+
+    it('Edit Pre-translation', async () => {
+        const preTranslation = await api.editPreTranslation(projectId, preTranslationId, [
+            {
+                op: 'replace',
+                path: '/status',
+                value: sampleStatus,
+            },
+        ]);
         expect(preTranslation.data.identifier).toBe(preTranslationId);
     });
 
@@ -237,10 +347,21 @@ describe('Translations API', () => {
 
     it('Upload Translation', async () => {
         const res = await api.uploadTranslation(projectId, languageId, {
-            storageId: storageId,
-            fileId: fileId,
+            storageId,
+            fileId,
         });
         expect(res.data.fileId).toBe(fileId);
+        expect(res.data.languageId).toBe(languageId);
+        expect(res.data.projectId).toBe(projectId);
+        expect(res.data.storageId).toBe(storageId);
+    });
+
+    it('Upload Translation String-based', async () => {
+        const res = await api.uploadTranslationStrings(projectId, languageId, {
+            storageId,
+            branchId,
+        });
+        expect(res.data.branchId).toBe(branchId);
         expect(res.data.languageId).toBe(languageId);
         expect(res.data.projectId).toBe(projectId);
         expect(res.data.storageId).toBe(storageId);

@@ -1,14 +1,22 @@
-import { ClientConfig, Credentials } from './core';
+import { Ai } from './ai';
+import { Applications } from './applications';
+import { Bundles } from './bundles';
+import { Clients } from './clients';
+import { ClientConfig, Credentials, CrowdinApi } from './core';
 import { Dictionaries } from './dictionaries';
 import { Distributions } from './distributions';
+import { Fields } from './fields';
 import { Glossaries } from './glossaries';
 import { Issues } from './issues';
 import { Labels } from './labels';
 import { Languages } from './languages';
 import { MachineTranslation } from './machineTranslation';
+import { Notifications } from './notifications';
+import { OrganizationWebhooks } from './organizationWebhooks';
 import { ProjectsGroups } from './projectsGroups';
 import { Reports } from './reports';
 import { Screenshots } from './screenshots';
+import { SecurityLogs } from './securityLogs';
 import { SourceFiles } from './sourceFiles';
 import { SourceStrings } from './sourceStrings';
 import { StringComments } from './stringComments';
@@ -16,25 +24,33 @@ import { StringTranslations } from './stringTranslations';
 import { Tasks } from './tasks';
 import { Teams } from './teams';
 import { TranslationMemory } from './translationMemory';
-import { Translations } from './translations';
 import { TranslationStatus } from './translationStatus';
+import { Translations } from './translations';
 import { UploadStorage } from './uploadStorage';
 import { Users } from './users';
 import { Vendors } from './vendors';
 import { Webhooks } from './webhooks';
 import { Workflows } from './workflows';
 
+export * from './ai';
+export * from './applications';
+export * from './bundles';
+export * from './clients';
 export * from './core';
 export * from './dictionaries';
 export * from './distributions';
+export * from './fields';
 export * from './glossaries';
 export * from './issues';
 export * from './labels';
 export * from './languages';
 export * from './machineTranslation';
+export * from './notifications';
+export * from './organizationWebhooks';
 export * from './projectsGroups';
 export * from './reports';
 export * from './screenshots';
+export * from './securityLogs';
 export * from './sourceFiles';
 export * from './sourceStrings';
 export * from './stringComments';
@@ -42,15 +58,20 @@ export * from './stringTranslations';
 export * from './tasks';
 export * from './teams';
 export * from './translationMemory';
-export * from './translations';
 export * from './translationStatus';
+export * from './translations';
 export * from './uploadStorage';
 export * from './users';
 export * from './vendors';
 export * from './webhooks';
 export * from './workflows';
 
-export default class Client {
+/**
+ * @internal
+ */
+export default class Client extends CrowdinApi {
+    readonly aiApi: Ai;
+    readonly applicationsApi: Applications;
     readonly sourceFilesApi: SourceFiles;
     readonly glossariesApi: Glossaries;
     readonly languagesApi: Languages;
@@ -64,13 +85,14 @@ export default class Client {
     readonly tasksApi: Tasks;
     readonly translationMemoryApi: TranslationMemory;
     readonly webhooksApi: Webhooks;
+    readonly organizationWebhooksApi: OrganizationWebhooks;
     readonly machineTranslationApi: MachineTranslation;
     readonly stringTranslationsApi: StringTranslations;
     readonly workflowsApi: Workflows;
     readonly usersApi: Users;
     readonly vendorsApi: Vendors;
     /**
-     * @deprecated
+     * @deprecated use stringCommentsApi instead
      */
     readonly issuesApi: Issues;
     readonly teamsApi: Teams;
@@ -78,8 +100,16 @@ export default class Client {
     readonly dictionariesApi: Dictionaries;
     readonly labelsApi: Labels;
     readonly stringCommentsApi: StringComments;
+    readonly bundlesApi: Bundles;
+    readonly notificationsApi: Notifications;
+    readonly clientsApi: Clients;
+    readonly securityLogsApi: SecurityLogs;
+    readonly fieldsApi: Fields;
 
     constructor(credentials: Credentials, config?: ClientConfig) {
+        super(credentials, config);
+        this.aiApi = new Ai(credentials, config);
+        this.applicationsApi = new Applications(credentials, config);
         this.sourceFilesApi = new SourceFiles(credentials, config);
         this.glossariesApi = new Glossaries(credentials, config);
         this.languagesApi = new Languages(credentials, config);
@@ -93,6 +123,7 @@ export default class Client {
         this.tasksApi = new Tasks(credentials, config);
         this.translationMemoryApi = new TranslationMemory(credentials, config);
         this.webhooksApi = new Webhooks(credentials, config);
+        this.organizationWebhooksApi = new OrganizationWebhooks(credentials, config);
         this.machineTranslationApi = new MachineTranslation(credentials, config);
         this.stringTranslationsApi = new StringTranslations(credentials, config);
         this.workflowsApi = new Workflows(credentials, config);
@@ -104,5 +135,10 @@ export default class Client {
         this.dictionariesApi = new Dictionaries(credentials, config);
         this.labelsApi = new Labels(credentials, config);
         this.stringCommentsApi = new StringComments(credentials, config);
+        this.bundlesApi = new Bundles(credentials, config);
+        this.notificationsApi = new Notifications(credentials, config);
+        this.clientsApi = new Clients(credentials, config);
+        this.securityLogsApi = new SecurityLogs(credentials, config);
+        this.fieldsApi = new Fields(credentials, config);
     }
 }

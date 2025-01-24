@@ -1,5 +1,5 @@
 import * as nock from 'nock';
-import { Credentials, PatchOperation, StringComments, StringCommentsModel } from '../../src/index';
+import { Credentials, StringComments } from '../../src/index';
 
 describe('String Comments API', () => {
     let scope: nock.Scope;
@@ -13,7 +13,7 @@ describe('String Comments API', () => {
     const stringCommentId = 4;
     const text = 'test';
     const languageId = 'uk';
-    const type = StringCommentsModel.Type.COMMENT;
+    const type = 'comment';
 
     const limit = 25;
 
@@ -80,7 +80,7 @@ describe('String Comments API', () => {
                 [
                     {
                         value: type,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/type',
                     },
                 ],
@@ -103,7 +103,7 @@ describe('String Comments API', () => {
     });
 
     it('List string comment', async () => {
-        const comments = await api.listStringComments(projectId, stringId);
+        const comments = await api.listStringComments(projectId, { stringId });
         expect(comments.data.length).toBe(1);
         expect(comments.data[0].data.id).toBe(stringCommentId);
         expect(comments.pagination.limit).toBe(limit);
@@ -131,7 +131,7 @@ describe('String Comments API', () => {
     it('Edit string comment', async () => {
         const comment = await api.editStringComment(projectId, stringCommentId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/type',
                 value: type,
             },

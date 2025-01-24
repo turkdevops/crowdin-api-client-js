@@ -1,4 +1,4 @@
-import { CrowdinApi, ResponseList, ResponseObject } from '../core';
+import { CrowdinApi, isOptionalNumber, PaginationOptions, ResponseList, ResponseObject } from '../core';
 
 const mimetypes: { [key: string]: string } = {
     '3dml': 'text/vnd.in3d.3dml',
@@ -910,20 +910,43 @@ const mimetypes: { [key: string]: string } = {
     tbx: 'application/x-tbx',
 };
 
+/**
+ * Storage is a separate container for each file. You need to use Add Storage method before adding files to your projects via API.
+ * Files that should be uploaded into storage include files for localization, screenshots, Glossaries, and Translation Memories.
+ *
+ * Storage id is the identifier of the file uploaded to the Storage.
+ *
+ * Note: Files uploaded to the storage are kept during the next 24 hours.
+ */
 export class UploadStorage extends CrowdinApi {
+    /**
+     * @param options optional pagination parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.storages.getMany
+     */
+    listStorages(options?: PaginationOptions): Promise<ResponseList<UploadStorageModel.Storage>>;
     /**
      * @param limit maximum number of items to retrieve (default 25)
      * @param offset starting offset in the collection (default 0)
+     * @deprecated optional parameters should be passed through an object
+     * @see https://developer.crowdin.com/api/v2/#operation/api.storages.getMany
      */
-    listStorages(limit?: number, offset?: number): Promise<ResponseList<UploadStorageModel.Storage>> {
+    listStorages(limit?: number, offset?: number): Promise<ResponseList<UploadStorageModel.Storage>>;
+    listStorages(
+        options?: number | PaginationOptions,
+        deprecatedOffset?: number,
+    ): Promise<ResponseList<UploadStorageModel.Storage>> {
+        if (isOptionalNumber(options, '0' in arguments)) {
+            options = { limit: options, offset: deprecatedOffset };
+        }
         const url = `${this.url}/storages`;
-        return this.getList(url, limit, offset);
+        return this.getList(url, options.limit, options.offset);
     }
 
     /**
      * @param fileName file name
      * @param request binary file data
      * @param contentType content type header
+     * @see https://developer.crowdin.com/api/v2/#operation/api.storages.post
      */
     addStorage(
         fileName: string,
@@ -932,9 +955,11 @@ export class UploadStorage extends CrowdinApi {
     ): Promise<ResponseObject<UploadStorageModel.Storage>> {
         const url = `${this.url}/storages`;
         const config = this.defaultConfig();
-        config.headers['Crowdin-API-FileName'] = fileName;
-        if (!!contentType) {
+        config.headers['Crowdin-API-FileName'] = this.encodeUrlParam(fileName);
+        if (contentType) {
             config.headers['Content-Type'] = contentType;
+        } else if (typeof request === 'string') {
+            config.headers['Content-Type'] = 'text/plain';
         } else {
             const fileNameParts = fileName.split('.');
             let contentType;
@@ -942,13 +967,14 @@ export class UploadStorage extends CrowdinApi {
                 const fileExtrension = fileNameParts[fileNameParts.length - 1];
                 contentType = mimetypes[fileExtrension];
             }
-            config.headers['Content-Type'] = contentType || 'application/octet-stream';
+            config.headers['Content-Type'] = contentType ?? 'application/octet-stream';
         }
         return this.post(url, request, config);
     }
 
     /**
      * @param storageId storage identifier
+     * @see https://developer.crowdin.com/api/v2/#operation/api.storages.get
      */
     getStorage(storageId: number): Promise<ResponseObject<UploadStorageModel.Storage>> {
         const url = `${this.url}/storages/${storageId}`;
@@ -957,6 +983,7 @@ export class UploadStorage extends CrowdinApi {
 
     /**
      * @param storageId storage identifier
+     * @see https://developer.crowdin.com/api/v2/#operation/api.storages.delete
      */
     deleteStorage(storageId: number): Promise<void> {
         const url = `${this.url}/storages/${storageId}`;

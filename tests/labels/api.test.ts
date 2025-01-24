@@ -1,5 +1,5 @@
 import * as nock from 'nock';
-import { Credentials, Labels, PatchOperation } from '../../src/index';
+import { Credentials, Labels } from '../../src/index';
 
 describe('Labels API', () => {
     let scope: nock.Scope;
@@ -11,6 +11,7 @@ describe('Labels API', () => {
     const projectId = 2;
     const labelId = 3;
     const stringId = 4;
+    const screenshotId = 5;
     const title = 'test';
 
     const limit = 25;
@@ -72,7 +73,7 @@ describe('Labels API', () => {
                 [
                     {
                         value: title,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/title',
                     },
                 ],
@@ -86,6 +87,51 @@ describe('Labels API', () => {
                 data: {
                     id: labelId,
                     title,
+                },
+            })
+            .post(
+                `/projects/${projectId}/labels/${labelId}/screenshots`,
+                {
+                    screenshotIds: [screenshotId],
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: [
+                    {
+                        data: {
+                            id: screenshotId,
+                        },
+                    },
+                ],
+                pagination: {
+                    offset: 0,
+                    limit: limit,
+                },
+            })
+            .delete(`/projects/${projectId}/labels/${labelId}/screenshots`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .query({
+                screenshotIds: screenshotId,
+            })
+            .reply(200, {
+                data: [
+                    {
+                        data: {
+                            id: screenshotId,
+                        },
+                    },
+                ],
+                pagination: {
+                    offset: 0,
+                    limit: limit,
                 },
             })
             .post(
@@ -165,13 +211,29 @@ describe('Labels API', () => {
     it('Edit label', async () => {
         const label = await api.editLabel(projectId, labelId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/title',
                 value: title,
             },
         ]);
         expect(label.data.id).toBe(labelId);
         expect(label.data.title).toBe(title);
+    });
+
+    it('Assign Label to Screenshots', async () => {
+        const screenshots = await api.assignLabelToScreenshots(projectId, labelId, {
+            screenshotIds: [screenshotId],
+        });
+        expect(screenshots.pagination.limit).toBe(limit);
+        expect(screenshots.data.length).toBe(1);
+        expect(screenshots.data[0].data.id).toBe(screenshotId);
+    });
+
+    it('Unassign Label from Screenshots', async () => {
+        const screenshots = await api.unassignLabelFromScreenshots(projectId, labelId, `${screenshotId}`);
+        expect(screenshots.pagination.limit).toBe(limit);
+        expect(screenshots.data.length).toBe(1);
+        expect(screenshots.data[0].data.id).toBe(screenshotId);
     });
 
     it('Assign Label to Strings', async () => {

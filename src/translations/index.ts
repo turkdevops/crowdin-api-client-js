@@ -1,21 +1,38 @@
-import { CrowdinApi, DownloadLink, ResponseList, ResponseObject, Status } from '../core';
+import {
+    CrowdinApi,
+    DownloadLink,
+    isOptionalNumber,
+    PaginationOptions,
+    PatchRequest,
+    ResponseList,
+    ResponseObject,
+    Status,
+} from '../core';
 
+/**
+ * Translators can work with entirely untranslated project or you can pre-translate the files to ease the translations process.
+ *
+ * Use API to pre-translate files via Machine Translation (MT) or Translation Memory (TM), upload your existing translations, and download translations correspondingly.
+ * Pre-translate and build are asynchronous operations and shall be completed with sequence of API methods.
+ */
 export class Translations extends CrowdinApi {
     /**
      * @param projectId project identifier
-     * @param request request body
+     * @param options optional parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.pre-translations.getMany
      */
-    applyPreTranslation(
+    listPreTranslations(
         projectId: number,
-        request: TranslationsModel.PreTranslateRequest,
-    ): Promise<ResponseObject<Status<TranslationsModel.PreTranslationStatusAttributes>>> {
+        options?: PaginationOptions,
+    ): Promise<ResponseList<Status<TranslationsModel.PreTranslationStatusAttributes>>> {
         const url = `${this.url}/projects/${projectId}/pre-translations`;
-        return this.post(url, request, this.defaultConfig());
+        return this.getList(url, options?.limit, options?.offset);
     }
 
     /**
      * @param projectId project identifier
      * @param preTranslationId pre translation identifier
+     * @see https://developer.crowdin.com/api/v2/#tag/Translations/paths/~1projects~1{projectId}~1pre-translations~1{preTranslationId}/get
      */
     preTranslationStatus(
         projectId: number,
@@ -27,13 +44,42 @@ export class Translations extends CrowdinApi {
 
     /**
      * @param projectId project identifier
+     * @param request request body
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.pre-translations.post
+     */
+    applyPreTranslation(
+        projectId: number,
+        request: TranslationsModel.PreTranslateRequest | TranslationsModel.PreTranslateStringsRequest,
+    ): Promise<ResponseObject<Status<TranslationsModel.PreTranslationStatusAttributes>>> {
+        const url = `${this.url}/projects/${projectId}/pre-translations`;
+        return this.post(url, request, this.defaultConfig());
+    }
+
+    /**
+     * @param projectId project identifier
+     * @param preTranslationId pre translation identifier
+     * @param request request body
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.pre-translations.patch
+     */
+    editPreTranslation(
+        projectId: number,
+        preTranslationId: string,
+        request: PatchRequest[],
+    ): Promise<ResponseObject<Status<TranslationsModel.PreTranslationStatusAttributes>>> {
+        const url = `${this.url}/projects/${projectId}/pre-translations/${preTranslationId}`;
+        return this.patch(url, request, this.defaultConfig());
+    }
+
+    /**
+     * @param projectId project identifier
      * @param directoryId directory identifier
      * @param request request body
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.builds.directories.post
      */
     buildProjectDirectoryTranslation(
         projectId: number,
         directoryId: number,
-        request: TranslationsModel.BuildProjectDirectoryTranslationRequest,
+        request: TranslationsModel.BuildProjectDirectoryTranslationRequest = {},
     ): Promise<ResponseObject<TranslationsModel.BuildProjectDirectoryTranslationResponse>> {
         const url = `${this.url}/projects/${projectId}/translations/builds/directories/${directoryId}`;
         const config = this.defaultConfig();
@@ -44,7 +90,8 @@ export class Translations extends CrowdinApi {
      * @param projectId project identifier
      * @param fileId file identifier
      * @param request request body
-     * @param eTag eTag 'If-None-Match' header
+     * @param eTag 'If-None-Match' header
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.builds.files.post
      */
     buildProjectFileTranslation(
         projectId: number,
@@ -54,7 +101,7 @@ export class Translations extends CrowdinApi {
     ): Promise<ResponseObject<TranslationsModel.BuildProjectFileTranslationResponse>> {
         const url = `${this.url}/projects/${projectId}/translations/builds/files/${fileId}`;
         const config = this.defaultConfig();
-        if (!!eTag) {
+        if (eTag) {
             config.headers['If-None-Match'] = eTag;
         }
         return this.post(url, request, config);
@@ -62,24 +109,45 @@ export class Translations extends CrowdinApi {
 
     /**
      * @param projectId project identifier
+     * @param options optional parameters for the request
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.builds.getMany
+     */
+    listProjectBuilds(
+        projectId: number,
+        options?: TranslationsModel.ListProjectBuildsOptions,
+    ): Promise<ResponseList<TranslationsModel.Build>>;
+    /**
+     * @param projectId project identifier
      * @param branchId branch identifier
      * @param limit maximum number of items to retrieve (default 25)
      * @param offset starting offset in the collection (default 0)
+     * @deprecated optional parameters should be passed through an object
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.builds.getMany
      */
     listProjectBuilds(
         projectId: number,
         branchId?: number,
         limit?: number,
         offset?: number,
+    ): Promise<ResponseList<TranslationsModel.Build>>;
+    listProjectBuilds(
+        projectId: number,
+        options?: number | TranslationsModel.ListProjectBuildsOptions,
+        deprecatedLimit?: number,
+        deprecatedOffset?: number,
     ): Promise<ResponseList<TranslationsModel.Build>> {
+        if (isOptionalNumber(options, '1' in arguments)) {
+            options = { branchId: options, limit: deprecatedLimit, offset: deprecatedOffset };
+        }
         let url = `${this.url}/projects/${projectId}/translations/builds`;
-        url = this.addQueryParam(url, 'branchId', branchId);
-        return this.getList(url, limit, offset);
+        url = this.addQueryParam(url, 'branchId', options.branchId);
+        return this.getList(url, options.limit, options.offset);
     }
 
     /**
      * @param projectId project identifier
      * @param request request body
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.builds.post
      */
     buildProject(
         projectId: number,
@@ -91,35 +159,9 @@ export class Translations extends CrowdinApi {
 
     /**
      * @param projectId project identifier
-     * @param buildId build identifier
-     */
-    downloadTranslations(projectId: number, buildId: number): Promise<ResponseObject<DownloadLink>> {
-        const url = `${this.url}/projects/${projectId}/translations/builds/${buildId}/download`;
-        return this.get(url, this.defaultConfig());
-    }
-
-    /**
-     * @param projectId project identifier
-     * @param buildId build identifier
-     */
-    checkBuildStatus(projectId: number, buildId: number): Promise<ResponseObject<TranslationsModel.Build>> {
-        const url = `${this.url}/projects/${projectId}/translations/builds/${buildId}`;
-        return this.get(url, this.defaultConfig());
-    }
-
-    /**
-     * @param projectId project identifier
-     * @param buildId build identifier
-     */
-    cancelBuild(projectId: number, buildId: number): Promise<void> {
-        const url = `${this.url}/projects/${projectId}/translations/builds/${buildId}`;
-        return this.delete(url, this.defaultConfig());
-    }
-
-    /**
-     * @param projectId project identifier
      * @param languageId language identifier
      * @param request request body
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.postOnLanguage
      */
     uploadTranslation(
         projectId: number,
@@ -130,9 +172,49 @@ export class Translations extends CrowdinApi {
         return this.post(url, request, this.defaultConfig());
     }
 
+    uploadTranslationStrings(
+        projectId: number,
+        languageId: string,
+        request: TranslationsModel.UploadTranslationStringsRequest,
+    ): Promise<ResponseObject<TranslationsModel.UploadTranslationStringsResponse>> {
+        const url = `${this.url}/projects/${projectId}/translations/${languageId}`;
+        return this.post(url, request, this.defaultConfig());
+    }
+
+    /**
+     * @param projectId project identifier
+     * @param buildId build identifier
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.builds.download.download
+     */
+    downloadTranslations(projectId: number, buildId: number): Promise<ResponseObject<DownloadLink>> {
+        const url = `${this.url}/projects/${projectId}/translations/builds/${buildId}/download`;
+        return this.get(url, this.defaultConfig());
+    }
+
+    /**
+     * @param projectId project identifier
+     * @param buildId build identifier
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.builds.get
+     */
+    checkBuildStatus(projectId: number, buildId: number): Promise<ResponseObject<TranslationsModel.Build>> {
+        const url = `${this.url}/projects/${projectId}/translations/builds/${buildId}`;
+        return this.get(url, this.defaultConfig());
+    }
+
+    /**
+     * @param projectId project identifier
+     * @param buildId build identifier
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.builds.delete
+     */
+    cancelBuild(projectId: number, buildId: number): Promise<void> {
+        const url = `${this.url}/projects/${projectId}/translations/builds/${buildId}`;
+        return this.delete(url, this.defaultConfig());
+    }
+
     /**
      * @param projectId project identifier
      * @param request request body
+     * @see https://developer.crowdin.com/api/v2/#operation/api.projects.translations.exports.post
      */
     exportProjectTranslation(
         projectId: number,
@@ -149,19 +231,47 @@ export namespace TranslationsModel {
         fileIds: number[];
         method?: Method;
         engineId?: number;
+        aiPromptId?: number;
         autoApproveOption?: AutoApproveOption;
         duplicateTranslations?: boolean;
+        skipApprovedTranslations?: boolean;
         translateUntranslatedOnly?: boolean;
         translateWithPerfectMatchOnly?: boolean;
-        markAddedTranslationsAsDone?: boolean;
+        fallbackLanguages?: {
+            languageId?: string[];
+        };
+        labelIds?: number[];
+        excludeLabelIds?: number[];
+    }
+
+    export interface PreTranslateStringsRequest {
+        languageIds: string[];
+        branchIds?: number[];
+        method?: Method;
+        engineId?: number;
+        aiPromptId?: number;
+        autoApproveOption?: AutoApproveOption;
+        duplicateTranslations?: boolean;
+        skipApprovedTranslations?: boolean;
+        translateUntranslatedOnly?: boolean;
+        translateWithPerfectMatchOnly?: boolean;
+        fallbackLanguages?: {
+            languageId: string[];
+        };
+        labelIds?: number[];
+        excludeLabelIds?: number[];
     }
 
     export interface BuildProjectDirectoryTranslationRequest {
         targetLanguageIds?: string[];
         skipUntranslatedStrings?: boolean;
         skipUntranslatedFiles?: boolean;
-        exportApprovedOnly?: boolean;
+        preserveFolderHierarchy?: boolean;
+        // enterprise
+        exportStringsThatPassedWorkflow?: boolean;
         exportWithMinApprovalsCount?: number;
+        // community
+        exportApprovedOnly?: boolean;
     }
 
     export interface BuildProjectDirectoryTranslationResponse {
@@ -169,23 +279,26 @@ export namespace TranslationsModel {
         projectId: number;
         status: BuildStatus;
         progress: number;
+        createdAt: string;
+        updatedAt: string;
+        finishedAt: string;
     }
 
-    export enum BuildStatus {
-        CREATED = 'created',
-        IN_PROGRESS = 'inProgress',
-        CANCELED = 'canceled',
-        FAILED = 'failed',
-        FINISHED = 'finished',
-    }
+    export type BuildStatus = 'created' | 'inProgress' | 'canceled' | 'failed' | 'finished';
 
     export interface BuildProjectFileTranslationRequest {
         targetLanguageId: string;
+        /**
+         * @deprecated Use {@link Translations.exportProjectTranslation} instead
+         */
         exportAsXliff?: boolean;
         skipUntranslatedStrings?: boolean;
         skipUntranslatedFiles?: boolean;
+        // community
         exportApprovedOnly?: boolean;
+        // enterprise
         exportWithMinApprovalsCount?: number;
+        exportStringsThatPassedWorkflow?: boolean;
     }
 
     export interface BuildProjectFileTranslationResponse extends DownloadLink {
@@ -195,47 +308,43 @@ export namespace TranslationsModel {
     export interface PreTranslationStatusAttributes {
         languageIds: string[];
         fileIds: number[];
+        branchIds: number[];
         method: Method;
         autoApproveOption: AutoApproveOption;
         duplicateTranslations: boolean;
+        skipApprovedTranslations: boolean;
         translateUntranslatedOnly: boolean;
         translateWithPerfectMatchOnly: boolean;
     }
 
-    export enum Method {
-        TM = 'tm',
-        MT = 'mt',
-    }
+    export type Method = 'tm' | 'mt' | 'ai';
 
-    export enum AutoApproveOption {
-        ALL = 'all',
-        EXCEPT_AUTO_SUBSTITUTED = 'exceptAutoSubstituted',
-        PERFECT_MATCH_ONLY = 'perfectMatchOnly',
-        NONE = 'none',
-    }
+    export type AutoApproveOption = 'all' | 'exceptAutoSubstituted' | 'perfectMatchOnly' | 'none';
 
-    export enum CharTransformation {
-        ASIAN = 'asian',
-        EUROPEAN = 'european',
-        ARABIC = 'arabic',
-        CYRILLIC = 'cyrillic',
-    }
+    export type CharTransformation = 'asian' | 'european' | 'arabic' | 'cyrillic';
 
     export interface Build {
         id: number;
-        status: string;
+        projectId: number;
+        status: BuildStatus;
         progress: number;
-        attributes: Attribute[];
+        attributes: Attribute;
+        createdAt: string;
+        updatedAt: string;
+        finishedAt: string;
     }
 
     export interface Attribute {
-        projectId: number;
         branchId: number;
-        targetLanguagesId: string[];
+        directoryId: number;
+        targetLanguageIds: string[];
         skipUntranslatedStrings: boolean;
-        exportApprovedOnly: boolean;
-        exportWithMinApprovalsCount: number;
         skipUntranslatedFiles: boolean;
+        // community
+        exportApprovedOnly: boolean;
+        // enterprise
+        exportWithMinApprovalsCount: number;
+        exportStringsThatPassedWorkflow: boolean;
     }
 
     export interface BuildRequest {
@@ -243,12 +352,16 @@ export namespace TranslationsModel {
         targetLanguageIds?: string[];
         skipUntranslatedStrings?: boolean;
         skipUntranslatedFiles?: boolean;
+        // community
         exportApprovedOnly?: boolean;
+        // enterprise
         exportWithMinApprovalsCount?: number;
+        exportStringsThatPassedWorkflow?: boolean;
     }
 
     export interface PseudoBuildRequest {
         pseudo: boolean;
+        branchId?: number;
         prefix?: string;
         suffix?: string;
         lengthTransformation?: number;
@@ -257,11 +370,20 @@ export namespace TranslationsModel {
 
     export interface UploadTranslationRequest {
         storageId: number;
-        fileId: number;
+        fileId?: number;
         importEqSuggestions?: boolean;
         autoApproveImported?: boolean;
-        markAddedTranslationsAsDone?: boolean;
         translateHidden?: boolean;
+        addToTm?: boolean;
+    }
+
+    export interface UploadTranslationStringsRequest {
+        storageId: number;
+        branchId?: number;
+        importEqSuggestions?: boolean;
+        autoApproveImported?: boolean;
+        translateHidden?: boolean;
+        addToTm?: boolean;
     }
 
     export interface UploadTranslationResponse {
@@ -269,6 +391,13 @@ export namespace TranslationsModel {
         storageId: number;
         languageId: string;
         fileId: number;
+    }
+
+    export interface UploadTranslationStringsResponse {
+        projectId: number;
+        storageId: number;
+        languageId: string;
+        branchId: number;
     }
 
     export interface ExportProjectTranslationRequest {
@@ -280,6 +409,14 @@ export namespace TranslationsModel {
         fileIds?: number[];
         skipUntranslatedStrings?: boolean;
         skipUntranslatedFiles?: boolean;
+        // community
+        exportApprovedOnly?: boolean;
+        // enterprise
         exportWithMinApprovalsCount?: number;
+        exportStringsThatPassedWorkflow?: boolean;
+    }
+
+    export interface ListProjectBuildsOptions extends PaginationOptions {
+        branchId?: number;
     }
 }

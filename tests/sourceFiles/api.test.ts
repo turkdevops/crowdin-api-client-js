@@ -1,5 +1,5 @@
 import * as nock from 'nock';
-import { Credentials, PatchOperation, SourceFiles } from '../../src';
+import { Credentials, CrowdinError, CrowdinValidationError, SourceFiles } from '../../src';
 
 describe('Source Files API', () => {
     let scope: nock.Scope;
@@ -7,7 +7,7 @@ describe('Source Files API', () => {
         token: 'testToken',
         organization: 'testOrg',
     };
-    const api: SourceFiles = new SourceFiles(credentials);
+    const api: SourceFiles = new SourceFiles(credentials, { httpClientType: 'axios', integrationUserAgent: 'test' });
     const projectId = 2;
     const fileName = '1.txt';
     const fileTitle = 'Test file';
@@ -16,6 +16,9 @@ describe('Source Files API', () => {
     const fileRevisionId = 888;
 
     const branchId = 12;
+    const sourceBranchId = 14;
+    const mergeBranchId = 'merge-123';
+    const mergeBranchStatus = 'merged';
     const branchName = 'master';
     const branchTitle = 'testTitle';
     const storageId = 123;
@@ -27,11 +30,50 @@ describe('Source Files API', () => {
 
     const buildId = 121212;
 
+    const cloneId = 'test12312';
+
     const fileId = 321;
     const limit = 25;
 
     beforeAll(() => {
         scope = nock(api.url)
+            .get(`/projects/${projectId}/branches/${branchId}/clones/${cloneId}/branch`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: {
+                    id: branchId,
+                    name: branchName,
+                },
+            })
+            .post(
+                `/projects/${projectId}/branches/${branchId}/clones`,
+                {
+                    name: branchName,
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: {
+                    identifier: cloneId,
+                },
+            })
+            .get(`/projects/${projectId}/branches/${branchId}/clones/${cloneId}`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: {
+                    identifier: cloneId,
+                },
+            })
             .get(`/projects/${projectId}/branches`, undefined, {
                 reqheaders: {
                     Authorization: `Bearer ${api.token}`,
@@ -64,11 +106,9 @@ describe('Source Files API', () => {
                     },
                 },
             )
-            .reply(200, {
-                data: {
-                    id: branchId,
-                    name: branchName,
-                },
+            .reply(500, {
+                messgae: 'Error occured',
+                code: 500,
             })
             .get(`/projects/${projectId}/branches/${branchId}`, undefined, {
                 reqheaders: {
@@ -86,13 +126,27 @@ describe('Source Files API', () => {
                     Authorization: `Bearer ${api.token}`,
                 },
             })
-            .reply(200)
+            .reply(400, {
+                errors: [
+                    {
+                        error: {
+                            key: 'branchId',
+                            errors: [
+                                {
+                                    message: 'validation error',
+                                    code: 400,
+                                },
+                            ],
+                        },
+                    },
+                ],
+            })
             .patch(
                 `/projects/${projectId}/branches/${branchId}`,
                 [
                     {
                         value: branchTitle,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/title',
                     },
                 ],
@@ -107,6 +161,42 @@ describe('Source Files API', () => {
                     id: branchId,
                     name: branchName,
                     title: branchTitle,
+                },
+            })
+            .post(
+                `/projects/${projectId}/branches/${branchId}/merges`,
+                {
+                    sourceBranchId,
+                },
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: {
+                    identifier: mergeBranchId,
+                },
+            })
+            .get(`/projects/${projectId}/branches/${branchId}/merges/${mergeBranchId}`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: {
+                    identifier: mergeBranchId,
+                },
+            })
+            .get(`/projects/${projectId}/branches/${branchId}/merges/${mergeBranchId}/summary`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: {
+                    status: mergeBranchStatus,
                 },
             })
             .get(`/projects/${projectId}/directories`, undefined, {
@@ -167,7 +257,7 @@ describe('Source Files API', () => {
                 [
                     {
                         value: directoryTitle,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/title',
                     },
                 ],
@@ -260,7 +350,7 @@ describe('Source Files API', () => {
                 [
                     {
                         value: fileTitle,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/title',
                     },
                 ],
@@ -275,6 +365,16 @@ describe('Source Files API', () => {
                     id: fileId,
                     name: fileName,
                     title: fileTitle,
+                },
+            })
+            .get(`/projects/${projectId}/files/${fileId}/preview`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: {
+                    url: filleRawUrl,
                 },
             })
             .get(`/projects/${projectId}/files/${fileId}/download`, undefined, {
@@ -386,19 +486,38 @@ describe('Source Files API', () => {
         scope.done();
     });
 
+    it('Get Cloned Branch', async () => {
+        const branch = await api.getClonedBranch(projectId, branchId, cloneId);
+        expect(branch.data.id).toBe(branchId);
+        expect(branch.data.name).toBe(branchName);
+    });
+
+    it('Clone branch', async () => {
+        const clone = await api.clonedBranch(projectId, branchId, {
+            name: branchName,
+        });
+        expect(clone.data.identifier).toBe(cloneId);
+    });
+
+    it('Check Branch Clone Status', async () => {
+        const clone = await api.checkBranchClonedStatus(projectId, branchId, cloneId);
+        expect(clone.data.identifier).toBe(cloneId);
+    });
+
     it('List project branches', async () => {
-        const branches = await api.listProjectBranches(projectId, branchName);
+        const branches = await api.listProjectBranches(projectId, { name: branchName });
         expect(branches.data.length).toBe(1);
         expect(branches.data[0].data.id).toBe(branchId);
         expect(branches.pagination.limit).toBe(limit);
     });
 
-    it('Create branch', async () => {
-        const branch = await api.createBranch(projectId, {
-            name: branchName,
-        });
-        expect(branch.data.id).toBe(branchId);
-        expect(branch.data.name).toBe(branchName);
+    it('Create branch should throw error', async () => {
+        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+        const t = () =>
+            api.createBranch(projectId, {
+                name: branchName,
+            });
+        expect(t).rejects.toThrow(CrowdinError);
     });
 
     it('Get branch', async () => {
@@ -407,14 +526,16 @@ describe('Source Files API', () => {
         expect(branch.data.name).toBe(branchName);
     });
 
-    it('Delete branch', async () => {
-        await api.deleteBranch(projectId, branchId);
+    it('Delete branch should throw validation error', async () => {
+        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+        const t = () => api.deleteBranch(projectId, branchId);
+        expect(t).rejects.toThrow(CrowdinValidationError);
     });
 
     it('Edit branch', async () => {
         const branch = await api.editBranch(projectId, branchId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/title',
                 value: branchTitle,
             },
@@ -422,6 +543,23 @@ describe('Source Files API', () => {
         expect(branch.data.id).toBe(branchId);
         expect(branch.data.name).toBe(branchName);
         expect(branch.data.title).toBe(branchTitle);
+    });
+
+    it('Merge branch', async () => {
+        const mergeStatus = await api.mergeBranch(projectId, branchId, {
+            sourceBranchId,
+        });
+        expect(mergeStatus.data.identifier).toBe(mergeBranchId);
+    });
+
+    it('Check Branch Merge Status', async () => {
+        const mergeStatus = await api.checkBranchMergeStatus(projectId, branchId, mergeBranchId);
+        expect(mergeStatus.data.identifier).toBe(mergeBranchId);
+    });
+
+    it('Get Branch Merge Summary', async () => {
+        const mergeStatus = await api.getBranchMergeSummary(projectId, branchId, mergeBranchId);
+        expect(mergeStatus.data.status).toBe(mergeBranchStatus);
     });
 
     it('List project directories', async () => {
@@ -453,7 +591,7 @@ describe('Source Files API', () => {
     it('Edit directory', async () => {
         const directory = await api.editDirectory(projectId, directoryId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/title',
                 value: directoryTitle,
             },
@@ -499,7 +637,7 @@ describe('Source Files API', () => {
     it('Edit file', async () => {
         const file = await api.editFile(projectId, fileId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/title',
                 value: fileTitle,
             },
@@ -507,6 +645,11 @@ describe('Source Files API', () => {
         expect(file.data.id).toBe(fileId);
         expect(file.data.name).toBe(fileName);
         expect(file.data.title).toBe(fileTitle);
+    });
+
+    it('Download file preview', async () => {
+        const file = await api.downloadFilePreview(projectId, fileId);
+        expect(file.data.url).toBe(filleRawUrl);
     });
 
     it('Download file', async () => {

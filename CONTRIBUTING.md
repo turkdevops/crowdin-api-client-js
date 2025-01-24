@@ -2,6 +2,8 @@
 
 :tada: First off, thanks for taking the time to contribute! :tada:
 
+The Crowdin API client provides methods that essentially call Crowdin's APIs. This makes it much easier for other developers to make calls to Crowdin's APIs, as the client abstracts a lot of the work required. In short, the API client provides a lightweight interface for making API requests to Crowdin.
+
 The following is a set of guidelines for contributing to Crowdin JavaScript Client. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
 This project and everyone participating in it are governed by the [Code of Conduct](/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
@@ -59,11 +61,37 @@ Unsure where to begin contributing to Crowdin JavaScript Client? You can start b
 
 Before sending your pull requests, make sure you followed the list below:
 
-- Read this guidelines.
+- Read these guidelines.
 - Read [Code of Conduct](/CODE_OF_CONDUCT.md).
 - Ensure that your code adheres to standard conventions, as used in the rest of the project.
 - Ensure that there are unit tests for your code.
 - Run unit tests.
+- Ensure that docs are correctly generating.
+
+> **Note**
+> This project uses the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification for commit messages and PR titles.
+
+#### Docs
+
+##### Generate
+
+To generate the docs run the following command:
+
+```console
+npm run generate-docs
+```
+
+##### Preview
+
+To preview the docs locally, run the following commands:
+
+```console
+npm install http-server -g
+
+http-server docs
+```
+
+Open `http://127.0.0.1:8080` in browser
 
 #### Philosophy of code contribution
 

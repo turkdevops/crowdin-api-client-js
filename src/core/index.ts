@@ -1,38 +1,59 @@
-import { AxisProvider } from './internal/axios/axiosProvider';
+import { AxiosError } from 'axios';
+import { HttpClientError, toHttpClientError } from './http-client-error';
+import { AxiosProvider } from './internal/axios/axiosProvider';
 import { FetchClient } from './internal/fetch/fetchClient';
+import { FetchClientJsonPayloadError } from './internal/fetch/fetchClientError';
 import { RetryConfig, RetryService } from './internal/retry';
 
-export interface RequestConfig {
-    headers?: any;
-    mode?: string;
-}
-
+/**
+ * @internal
+ */
 export interface HttpClient {
-    get<T>(url: string, config?: RequestConfig): Promise<T>;
-    delete<T>(url: string, config?: RequestConfig): Promise<T>;
-    head<T>(url: string, config?: RequestConfig): Promise<T>;
-    post<T>(url: string, data?: any, config?: RequestConfig): Promise<T>;
-    put<T>(url: string, data?: any, config?: RequestConfig): Promise<T>;
-    patch<T>(url: string, data?: any, config?: RequestConfig): Promise<T>;
+    get<T>(url: string, config?: { headers: Record<string, string> }): Promise<T>;
+    delete<T>(url: string, config?: { headers: Record<string, string> }): Promise<T>;
+    head<T>(url: string, config?: { headers: Record<string, string> }): Promise<T>;
+    post<T>(url: string, data?: unknown, config?: { headers: Record<string, string> }): Promise<T>;
+    put<T>(url: string, data?: unknown, config?: { headers: Record<string, string> }): Promise<T>;
+    patch<T>(url: string, data?: unknown, config?: { headers: Record<string, string> }): Promise<T>;
 }
 
-export enum HttpClientType {
-    AXIOS = 'axios',
-    FETCH = 'fetch',
-}
+export type HttpClientType = 'axios' | 'fetch';
 
+/**
+ * Authorization credentials
+ */
 export interface Credentials {
+    /** Personal Access Token */
     token: string;
+
+    /** Yor Crowdin Enterprise organization name */
     organization?: string;
+
+    /** API base URL */
     baseUrl?: string;
 }
 
+/**
+ * Client Configuration
+ */
 export interface ClientConfig {
+    /** The type of HTTP client to be used for making requests */
     httpClientType?: HttpClientType;
+
+    /** Instance of your HTTP client if needed */
     httpClient?: HttpClient;
+
+    /** Custom User-Agent to be passed to the `User-Agent` header */
     userAgent?: string;
+
+    /** Custom User-Agent to be passed to the `X-Crowdin-Integrations-User-Agent` header */
     integrationUserAgent?: string;
+
+    /** Retry strategy configuration */
     retryConfig?: RetryConfig;
+
+    /** Http request timeout in ms */
+    httpRequestTimeout?: number;
 }
 
 export interface ResponseList<T> {
@@ -49,48 +70,32 @@ export interface Pagination {
     limit: number;
 }
 
-export interface ValidationErrorResponse {
-    errors: ErrorHolder[];
-}
+export type PaginationOptions = Partial<Pagination>;
 
-export interface CommonErrorResponse {
-    error: Error;
-}
-
-export interface ErrorHolder {
-    error: ErrorKey;
-}
-
-export interface ErrorKey {
-    key: string;
-    errors: Error[];
-}
-
-export interface Error {
-    code: string;
-    message: string;
-}
-
+/**
+ * A JSON Patch document as defined by [RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902#section-3)
+ */
 export interface PatchRequest {
+    /** Patch value */
     value?: any;
+
+    /** Patch operation to perform */
     op: PatchOperation;
+
+    /** A JSON Pointer as defined by [RFC 6901](https://datatracker.ietf.org/doc/html/rfc6901) */
     path: string;
 }
 
-export enum PatchOperation {
-    ADD = 'add',
-    REMOVE = 'remove',
-    REPLACE = 'replace',
-    MOVE = 'move',
-    copy = 'copy',
-    TEST = 'test',
-}
+export type PatchOperation = 'add' | 'remove' | 'replace' | 'move' | 'copy' | 'test';
 
 export interface DownloadLink {
     url: string;
     expireIn: string;
 }
 
+/**
+ * @internal
+ */
 export enum BooleanInt {
     TRUE = 1,
     FALSE = 0,
@@ -105,21 +110,108 @@ export interface Status<T> {
     updatedAt: string;
     startedAt: string;
     finishedAt: string;
+    eta: string;
 }
 
 export interface Attribute {
     [key: string]: string;
 }
 
+export type PlainObject = Record<string, any>;
+
+/**
+ * @internal
+ */
+export class CrowdinError extends Error {
+    public code: number;
+    constructor(message: string, code: number) {
+        super(message);
+        this.code = code;
+    }
+}
+
+/**
+ * @internal
+ */
+export class CrowdinValidationError extends CrowdinError {
+    public validationCodes: { key: string; codes: string[] }[];
+    constructor(message: string, validationCodes: { key: string; codes: string[] }[]) {
+        super(message, 400);
+        this.validationCodes = validationCodes;
+    }
+}
+
+function isAxiosError(error: any): error is AxiosError {
+    return error instanceof AxiosError || !!error.response?.data;
+}
+
+/**
+ * @internal
+ */
+export function handleHttpClientError(error: HttpClientError): never {
+    let crowdinResponseErrors: any = null;
+
+    if (isAxiosError(error)) {
+        crowdinResponseErrors = (error.response?.data as any)?.errors || (error.response?.data as any)?.error;
+    } else if (error instanceof FetchClientJsonPayloadError) {
+        crowdinResponseErrors =
+            error.jsonPayload &&
+            typeof error.jsonPayload === 'object' &&
+            ('errors' in error.jsonPayload || 'error' in error.jsonPayload)
+                ? error.jsonPayload.errors || error.jsonPayload.error
+                : null;
+    }
+
+    if (Array.isArray(crowdinResponseErrors)) {
+        const validationCodes: { key: string; codes: string[] }[] = [];
+        const validationMessages: string[] = [];
+        crowdinResponseErrors.forEach((e: any) => {
+            if (typeof e.index === 'number' || typeof e.error?.key === 'number') {
+                throw new CrowdinValidationError(JSON.stringify(crowdinResponseErrors, null, 2), []);
+            }
+            if (e.error?.key && Array.isArray(e.error?.errors)) {
+                const codes: string[] = [];
+                e.error.errors.forEach((er: any) => {
+                    if (er.message && er.code) {
+                        codes.push(er.code);
+                        validationMessages.push(er.message);
+                    }
+                });
+                validationCodes.push({ key: e.error.key, codes });
+            }
+        });
+        const message = validationMessages.length === 0 ? 'Validation error' : validationMessages.join(', ');
+        throw new CrowdinValidationError(message, validationCodes);
+    } else if (crowdinResponseErrors?.message && crowdinResponseErrors?.code) {
+        throw new CrowdinError(crowdinResponseErrors.message, crowdinResponseErrors.code);
+    }
+
+    if (error instanceof Error) {
+        const code =
+            error instanceof AxiosError && error.response?.status
+                ? error.response?.status
+                : error instanceof FetchClientJsonPayloadError
+                ? error.statusCode
+                : 500;
+        throw new CrowdinError(error.message, code);
+    }
+    throw new CrowdinError(`unknown http error: ${String(error)}`, 500);
+}
+
 export abstract class CrowdinApi {
     private static readonly CROWDIN_URL_SUFFIX: string = 'api.crowdin.com/api/v2';
-    private static readonly AXIOS_INSTANCE = new AxisProvider().axios;
+    private static readonly AXIOS_INSTANCE = new AxiosProvider().axios;
     private static readonly FETCH_INSTANCE = new FetchClient();
 
+    /** @internal */
     readonly token: string;
+    /** @internal */
     readonly organization?: string;
+    /** @internal */
     readonly url: string;
+    /** @internal */
     readonly config: ClientConfig | undefined;
+    /** @internal */
     readonly retryService: RetryService;
 
     protected fetchAllFlag = false;
@@ -133,10 +225,10 @@ export abstract class CrowdinApi {
         this.token = credentials.token;
         this.organization = credentials.organization;
 
-        if (!!credentials.baseUrl) {
+        if (credentials.baseUrl) {
             this.url = credentials.baseUrl;
         } else {
-            if (!!this.organization) {
+            if (this.organization) {
                 this.url = `https://${this.organization}.${CrowdinApi.CROWDIN_URL_SUFFIX}`;
             } else {
                 this.url = `https://${CrowdinApi.CROWDIN_URL_SUFFIX}`;
@@ -144,7 +236,7 @@ export abstract class CrowdinApi {
         }
 
         let retryConfig: RetryConfig;
-        if (!!config && !!config.retryConfig) {
+        if (config?.retryConfig) {
             retryConfig = config.retryConfig;
         } else {
             retryConfig = {
@@ -155,55 +247,70 @@ export abstract class CrowdinApi {
         }
         this.retryService = new RetryService(retryConfig);
 
+        if (config?.httpRequestTimeout) {
+            CrowdinApi.FETCH_INSTANCE.withTimeout(config?.httpRequestTimeout);
+            CrowdinApi.AXIOS_INSTANCE.defaults.timeout = config?.httpRequestTimeout;
+        }
+
         this.config = config;
     }
 
-    protected addQueryParam(url: string, name: string, value?: any): string {
-        if (!!value) {
+    graphql<T>(req: { query: string; operationName?: string; variables?: any }): Promise<ResponseObject<T>> {
+        let url;
+
+        if (this.organization) {
+            url = `https://${this.organization}.api.crowdin.com/api/graphql`;
+        } else {
+            url = 'https://api.crowdin.com/api/graphql';
+        }
+
+        return this.post<ResponseObject<T>>(url, req, this.defaultConfig());
+    }
+
+    protected addQueryParam(url: string, name: string, value?: string | number): string {
+        if (value) {
             url += new RegExp(/\?.+=.*/g).test(url) ? '&' : '?';
-            url += `${name}=${value}`;
+            url += `${name}=${this.encodeUrlParam(value)}`;
         }
         return url;
     }
 
-    protected defaultConfig(): any {
-        const config: any = {
+    protected defaultConfig(): { headers: Record<string, string> } {
+        const config: {
+            headers: Record<string, string>;
+        } = {
             headers: {
                 Authorization: `Bearer ${this.token}`,
             },
         };
-        if (!!this.config) {
-            if (!!this.config.userAgent) {
-                config.headers['User-Agent'] = this.config.userAgent;
-            }
-            if (!!this.config.integrationUserAgent) {
-                config.headers['X-Crowdin-Integrations-User-Agent'] = this.config.integrationUserAgent;
-            }
+        if (this.config?.userAgent) {
+            config.headers['User-Agent'] = this.config.userAgent;
+        }
+        if (this.config?.integrationUserAgent) {
+            config.headers['X-Crowdin-Integrations-User-Agent'] = this.config.integrationUserAgent;
         }
         return config;
     }
 
+    /** @internal */
     get httpClient(): HttpClient {
-        if (!!this.config) {
-            if (!!this.config.httpClient) {
-                return this.config.httpClient;
-            }
-            if (!!this.config.httpClientType) {
-                switch (this.config.httpClientType) {
-                    case HttpClientType.AXIOS:
-                        return CrowdinApi.AXIOS_INSTANCE;
-                    case HttpClientType.FETCH:
-                        return CrowdinApi.FETCH_INSTANCE;
-                    default:
-                        return CrowdinApi.AXIOS_INSTANCE;
-                }
+        if (this.config?.httpClient) {
+            return this.config.httpClient;
+        }
+        if (this.config?.httpClientType) {
+            switch (this.config.httpClientType) {
+                case 'axios':
+                    return CrowdinApi.AXIOS_INSTANCE;
+                case 'fetch':
+                    return CrowdinApi.FETCH_INSTANCE;
+                default:
+                    return CrowdinApi.AXIOS_INSTANCE;
             }
         }
         return CrowdinApi.AXIOS_INSTANCE;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    public withFetchAll(maxLimit?: number) {
+    public withFetchAll(maxLimit?: number): this {
         this.fetchAllFlag = true;
         this.maxLimit = maxLimit;
         return this;
@@ -213,9 +320,9 @@ export abstract class CrowdinApi {
         url: string,
         limit?: number,
         offset?: number,
-        config?: { headers: any },
+        config?: { headers: Record<string, string> },
     ): Promise<ResponseList<T>> {
-        const conf = config || this.defaultConfig();
+        const conf = config ?? this.defaultConfig();
         if (this.fetchAllFlag) {
             this.fetchAllFlag = false;
             const maxAmount = this.maxLimit;
@@ -228,13 +335,13 @@ export abstract class CrowdinApi {
         }
     }
 
-    protected async fetchAll<T = any>(
+    protected async fetchAll<T>(
         url: string,
-        config: { headers: any },
+        config: { headers: Record<string, string> },
         maxAmount?: number,
     ): Promise<ResponseList<T>> {
         let limit = 500;
-        if (!!maxAmount && maxAmount < limit) {
+        if (maxAmount && maxAmount < limit) {
             limit = maxAmount;
         }
         let offset = 0;
@@ -249,43 +356,121 @@ export abstract class CrowdinApi {
                 resp.data = resp.data.concat(e.data);
                 resp.pagination.limit += e.data.length;
             }
-            if (e.data.length < limit || (!!maxAmount && resp.data.length >= maxAmount)) {
+            if (e.data.length < limit || (maxAmount && resp.data.length >= maxAmount)) {
                 break;
             } else {
                 offset += limit;
             }
-            if (!!maxAmount) {
-                if (maxAmount < resp.data.length + limit) {
-                    limit = maxAmount - resp.data.length;
-                }
+            if (maxAmount && maxAmount < resp.data.length + limit) {
+                limit = maxAmount - resp.data.length;
             }
         }
         return resp;
     }
 
+    protected encodeUrlParam(param: string | number | boolean): string {
+        return encodeURIComponent(param);
+    }
+
     //Http overrides
 
-    protected get<T>(url: string, config?: { headers: any }): Promise<T> {
-        return this.retryService.executeAsyncFunc(() => this.httpClient.get(url, config));
+    protected get<T>(url: string, config?: { headers: Record<string, string> }): Promise<T> {
+        return this.retryService
+            .executeAsyncFunc(() => this.httpClient.get<T>(url, config))
+            .catch((err: unknown) => handleHttpClientError(toHttpClientError(err)));
     }
 
-    protected delete<T>(url: string, config?: { headers: any }): Promise<T> {
-        return this.retryService.executeAsyncFunc(() => this.httpClient.delete(url, config));
+    protected delete<T>(url: string, config?: { headers: Record<string, string> }): Promise<T> {
+        return this.retryService
+            .executeAsyncFunc(() => this.httpClient.delete<T>(url, config))
+            .catch((err: unknown) => handleHttpClientError(toHttpClientError(err)));
     }
 
-    protected head<T>(url: string, config?: { headers: any }): Promise<T> {
-        return this.retryService.executeAsyncFunc(() => this.httpClient.head(url, config));
+    protected head<T>(url: string, config?: { headers: Record<string, string> }): Promise<T> {
+        return this.retryService
+            .executeAsyncFunc(() => this.httpClient.head<T>(url, config))
+            .catch((err: unknown) => handleHttpClientError(toHttpClientError(err)));
     }
 
-    protected post<T>(url: string, data?: any, config?: { headers: any }): Promise<T> {
-        return this.retryService.executeAsyncFunc(() => this.httpClient.post(url, data, config));
+    protected post<T>(url: string, data?: unknown, config?: { headers: Record<string, string> }): Promise<T> {
+        return this.retryService
+            .executeAsyncFunc(() => this.httpClient.post<T>(url, data, config))
+            .catch((err: unknown) => handleHttpClientError(toHttpClientError(err)));
     }
 
-    protected put<T>(url: string, data?: any, config?: { headers: any }): Promise<T> {
-        return this.retryService.executeAsyncFunc(() => this.httpClient.put(url, data, config));
+    protected put<T>(url: string, data?: unknown, config?: { headers: Record<string, string> }): Promise<T> {
+        return this.retryService
+            .executeAsyncFunc(() => this.httpClient.put<T>(url, data, config))
+            .catch((err: unknown) => handleHttpClientError(toHttpClientError(err)));
     }
 
-    protected patch<T>(url: string, data?: any, config?: { headers: any }): Promise<T> {
-        return this.retryService.executeAsyncFunc(() => this.httpClient.patch(url, data, config));
+    protected patch<T>(url: string, data?: unknown, config?: { headers: Record<string, string> }): Promise<T> {
+        return this.retryService
+            .executeAsyncFunc(() => this.httpClient.patch<T>(url, data, config))
+            .catch((err: unknown) => handleHttpClientError(toHttpClientError(err)));
     }
+}
+
+let deprecationEmittedForOptionalParams = false;
+
+function emitDeprecationWarning(): void {
+    if (!deprecationEmittedForOptionalParams) {
+        if (typeof process !== 'undefined' && typeof process.emitWarning === 'function') {
+            process.emitWarning(
+                'Passing optional parameters individually is deprecated. Pass a sole object instead',
+                'DeprecationWarning',
+            );
+        } else {
+            console.warn(
+                'DeprecationWarning: Passing optional parameters individually is deprecated. Pass a sole object instead',
+            );
+        }
+        deprecationEmittedForOptionalParams = true;
+    }
+}
+
+/**
+ * @internal
+ */
+export function isOptionalString(
+    parameter: string | unknown,
+    parameterInArgs: boolean,
+): parameter is string | undefined {
+    if (typeof parameter === 'string' || typeof parameter === 'undefined') {
+        if (parameterInArgs) {
+            emitDeprecationWarning();
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/**
+ * @internal
+ */
+export function isOptionalNumber(
+    parameter: number | unknown,
+    parameterInArgs: boolean,
+): parameter is number | undefined {
+    if (typeof parameter === 'number' || typeof parameter === 'undefined') {
+        if (parameterInArgs) {
+            emitDeprecationWarning();
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+export interface ProjectRole {
+    name: string;
+    permissions: ProjectRolePermissions;
+}
+
+export interface ProjectRolePermissions {
+    allLanguages: boolean;
+    languagesAccess: {
+        [lang: string]: { allContent: boolean; workflowStepIds: number[] };
+    };
 }

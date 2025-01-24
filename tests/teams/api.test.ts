@@ -1,5 +1,5 @@
 import * as nock from 'nock';
-import { Credentials, PatchOperation, Teams } from '../../src';
+import { Credentials, Teams } from '../../src';
 
 describe('Tasks API', () => {
     let scope: nock.Scope;
@@ -12,11 +12,57 @@ describe('Tasks API', () => {
     const teamId = 3;
     const userId = 4;
     const name = 'Test team';
+    const permissionId = 1213;
 
     const limit = 25;
 
     beforeAll(() => {
         scope = nock(api.url)
+            .get(`/teams/${teamId}/projects/permissions`, undefined, {
+                reqheaders: {
+                    Authorization: `Bearer ${api.token}`,
+                },
+            })
+            .reply(200, {
+                data: [
+                    {
+                        data: {
+                            id: permissionId,
+                        },
+                    },
+                ],
+                pagination: {
+                    offset: 0,
+                    limit: limit,
+                },
+            })
+            .patch(
+                `/teams/${teamId}/projects/permissions`,
+                [
+                    {
+                        op: 'remove',
+                        path: `/${permissionId}`,
+                    },
+                ],
+                {
+                    reqheaders: {
+                        Authorization: `Bearer ${api.token}`,
+                    },
+                },
+            )
+            .reply(200, {
+                data: [
+                    {
+                        data: {
+                            id: permissionId,
+                        },
+                    },
+                ],
+                pagination: {
+                    offset: 0,
+                    limit: limit,
+                },
+            })
             .post(
                 `/projects/${projectId}/teams`,
                 {
@@ -88,7 +134,7 @@ describe('Tasks API', () => {
                 [
                     {
                         value: name,
-                        op: PatchOperation.REPLACE,
+                        op: 'replace',
                         path: '/name',
                     },
                 ],
@@ -159,6 +205,25 @@ describe('Tasks API', () => {
         scope.done();
     });
 
+    it('List Team Projects Permissions', async () => {
+        const permissions = await api.listTeamProjectPermissions(teamId);
+        expect(permissions.data.length).toBe(1);
+        expect(permissions.data[0].data.id).toBe(permissionId);
+        expect(permissions.pagination.limit).toBe(limit);
+    });
+
+    it('Permissions Batch Operations', async () => {
+        const permissions = await api.editTeamProjectPermissions(teamId, [
+            {
+                op: 'remove',
+                path: `/${permissionId}`,
+            },
+        ]);
+        expect(permissions.data.length).toBe(1);
+        expect(permissions.data[0].data.id).toBe(permissionId);
+        expect(permissions.pagination.limit).toBe(limit);
+    });
+
     it('Add team to project', async () => {
         const teams = await api.addTeamToProject(projectId, {
             teamId: teamId,
@@ -191,7 +256,7 @@ describe('Tasks API', () => {
     it('Edit team', async () => {
         const team = await api.editTeam(teamId, [
             {
-                op: PatchOperation.REPLACE,
+                op: 'replace',
                 path: '/name',
                 value: name,
             },
